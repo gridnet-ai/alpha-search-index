@@ -1,0 +1,28 @@
+{
+  "name": "alpha-search-index",
+  "version": "1.0.0",
+  "description": "Alpha Search Index — Machine Web Crawler Factory",
+  "main": "index.js",
+  "scripts": {
+    "serve": "firebase emulators:start --only functions,hosting,firestore",
+    "deploy": "firebase deploy",
+    "deploy:hosting": "firebase deploy --only hosting",
+    "deploy:functions": "firebase deploy --only functions",
+    "deploy:firestore": "firebase deploy --only firestore",
+    "logs": "firebase functions:log"
+  },
+  "keywords": [
+    "alpha-search",
+    "ai-readiness",
+    "machine-web",
+    "crawler"
+  ],
+  "author": "Gridnet AI",
+  "license": "PROPRIETARY",
+  "devDependencies": {
+    "firebase-tools": "^13.0.0"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.7.0"
+  }
+}

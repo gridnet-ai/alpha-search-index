@@ -1,0 +1,17 @@
+{
+  "name": "alpha-search-scraper",
+  "version": "1.0.0",
+  "description": "Cloud Run service for Google search scraping with Puppeteer",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "puppeteer": "^21.0.0"
+  },
+  "engines": {
+    "node": "20"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "index",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "alphaRankScore",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "lastCrawled",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "submissions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "submittedAt",
+          "order": "DESCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

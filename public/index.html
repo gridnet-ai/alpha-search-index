@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alpha Search — Machine Web Index</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #e8eaf0;
+    --shadow-light: #ffffff;
+    --shadow-dark: #c8cad4;
+    --neu-raised: 6px 6px 14px #c8cad4, -6px -6px 14px #ffffff;
+    --neu-inset: inset 4px 4px 10px #c8cad4, inset -4px -4px 10px #ffffff;
+    --neu-flat: 2px 2px 6px #c8cad4, -2px -2px 6px #ffffff;
+    --neu-sm: 3px 3px 8px #c8cad4, -3px -3px 8px #ffffff;
+    --accent-blue: #4a8fff;
+    --accent-green: #34c78a;
+    --accent-orange: #f0704a;
+    --text-primary: #1a1c2e;
+    --text-secondary: #5a5f7a;
+    --text-tertiary: #8890aa;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text-primary);
+    overflow-x: hidden;
+  }
+
+  /* ── HERO STATE (centered) ── */
+  .app {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  /* STATUS */
+  .status-bar {
+    display: flex;
+    justify-content: center;
+    padding: 28px 0 0;
+    transition: opacity 0.4s;
+  }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 16px;
+    border-radius: 20px;
+    box-shadow: var(--neu-sm);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-secondary);
+    letter-spacing: 0.02em;
+  }
+
+  .status-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--accent-orange);
+    animation: pulse 2s infinite;
+  }
+  .status-dot.live { background: var(--accent-green); }
+
+  @keyframes pulse {
+    0%,100% { opacity:1; transform:scale(1); }
+    50% { opacity:0.5; transform:scale(0.8); }
+  }
+
+  /* HERO LOGO */
+  .hero {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 24px;
+    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .hero.shifted {
+    flex: 0;
+    padding-top: 32px;
+    padding-bottom: 0;
+    justify-content: flex-start;
+  }
+
+  .logo {
+    font-size: 48px;
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    margin-bottom: 12px;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .hero.shifted .logo {
+    font-size: 28px;
+    margin-bottom: 6px;
+  }
+
+  .logo .alpha { color: var(--accent-blue); font-weight: 500; }
+  .logo .search { color: var(--text-primary); font-weight: 300; }
+
+  .tagline {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    margin-bottom: 0;
+    transition: all 0.4s;
+  }
+
+  .hero.shifted .tagline {
+    font-size: 10px;
+  }
+
+  /* ── CHAT OUTPUT AREA ── */
+  .chat-area {
+    max-width: 660px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 24px 24px 120px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+
+  .chat-area.visible {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  /* URL bubble (user) */
+  .bubble-user {
+    align-self: flex-end;
+    background: var(--bg);
+    box-shadow: var(--neu-raised);
+    border-radius: 18px 18px 4px 18px;
+    padding: 10px 18px;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--text-secondary);
+    max-width: 80%;
+    word-break: break-all;
+  }
+
+  /* Score card (system output) */
+  .bubble-system {
+    align-self: flex-start;
+    width: 100%;
+    animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    opacity: 0;
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .score-card {
+    background: var(--bg);
+    border-radius: 20px;
+    box-shadow: var(--neu-raised);
+    padding: 24px;
+  }
+
+  .aggregate-card {
+    background: var(--bg);
+    border-radius: 20px;
+    box-shadow: var(--neu-raised);
+    padding: 24px;
+  }
+
+  .aggregate-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .aggregate-query {
+    font-size: 19px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+  }
+
+  .aggregate-sub {
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-secondary);
+  }
+
+  .score-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .page-title {
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-tertiary);
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 300px;
+  }
+
+  .score-domain {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+  }
+
+  .score-grade-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .score-grade-pill.ai-native    { background: #e8f5e9; color: #2e7d32; }
+  .score-grade-pill.ai-ready     { background: #e3f2fd; color: #1565c0; }
+  .score-grade-pill.machine-ready{ background: #f3e5f5; color: #6a1b9a; }
+  .score-grade-pill.listed       { background: #fff3e0; color: #e65100; }
+  .score-grade-pill.not-ready    { background: #fce4ec; color: #c62828; }
+
+  .score-number { text-align: right; }
+  .score-big {
+    font-family: 'DM Mono', monospace;
+    font-size: 44px;
+    font-weight: 500;
+    color: var(--text-primary);
+    line-height: 1;
+  }
+  .score-big span { font-size: 18px; color: var(--text-tertiary); }
+  .score-label { font-size: 10px; color: var(--text-tertiary); margin-top: 3px; font-family: 'DM Mono', monospace; }
+
+  /* progress bar */
+  .score-bar-bg {
+    height: 7px; border-radius: 4px;
+    box-shadow: var(--neu-inset);
+    overflow: hidden; margin-bottom: 20px;
+  }
+  .score-bar-fill {
+    height: 100%; border-radius: 4px;
+    background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+    transition: width 1.2s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  /* check rows */
+  .breakdown-title {
+    font-size: 10px; font-family: 'DM Mono', monospace;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--text-tertiary); margin-bottom: 10px;
+  }
+
+  .check-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 12px; border-radius: 10px; margin-bottom: 5px;
+    box-shadow: var(--neu-flat);
+  }
+
+  .check-left { display: flex; align-items: center; gap: 11px; }
+
+  .check-icon {
+    width: 20px; height: 20px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; flex-shrink: 0;
+  }
+  .check-icon.pass { background: #e8f5e9; color: #2e7d32; }
+  .check-icon.fail { background: #fce4ec; color: #c62828; }
+
+  .check-name { font-size: 13px; color: var(--text-primary); font-weight: 500; }
+  .check-sub  { font-size: 10px; color: var(--text-tertiary); font-family: 'DM Mono', monospace; }
+
+  .check-pts { font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; }
+  .check-pts.pos  { color: var(--accent-green); }
+  .check-pts.zero { color: var(--text-tertiary); }
+
+  /* suggestions */
+  .suggestions {
+    border-radius: 12px; box-shadow: var(--neu-inset);
+    padding: 14px 16px; margin-top: 14px;
+  }
+  .suggestions-title {
+    font-size: 10px; font-family: 'DM Mono', monospace;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--text-tertiary); margin-bottom: 10px;
+  }
+  .suggestion-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 0; border-bottom: 1px solid rgba(90,95,122,0.08);
+    font-size: 13px; color: var(--text-secondary);
+  }
+  .suggestion-item:last-child { border-bottom: none; }
+  .suggestion-arrow { color: var(--accent-blue); font-size: 13px; flex-shrink: 0; }
+  .suggestion-boost { margin-left: auto; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--accent-green); white-space: nowrap; }
+
+  /* card actions */
+  .card-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+
+  .card-btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 9px 20px; border-radius: 20px; border: none;
+    background: var(--bg); box-shadow: var(--neu-sm);
+    font-family: 'DM Sans', sans-serif; font-size: 12px;
+    color: var(--text-secondary); cursor: pointer; transition: all 0.2s;
+  }
+  .card-btn:hover { box-shadow: var(--neu-raised); color: var(--accent-blue); }
+
+  /* crawled badge */
+  .crawled-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 10px; border-radius: 20px;
+    background: rgba(52,199,138,0.1); border: 1px solid rgba(52,199,138,0.2);
+    font-family: 'DM Mono', monospace; font-size: 10px; color: var(--accent-green);
+    margin-top: 6px;
+  }
+  .crawled-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent-green); }
+
+  /* ── COLLAPSIBLE CARDS ── */
+  .score-card.collapsible {
+    cursor: pointer;
+  }
+
+  .score-header-compact {
+    padding: 16px 20px;
+    transition: all 0.3s ease;
+  }
+
+  .score-header-compact:hover {
+    background: rgba(255,255,255,0.3);
+    border-radius: 16px;
+  }
+
+  .score-number-compact {
+    text-align: right;
+  }
+
+  .score-number-compact .score-big {
+    font-size: 32px;
+  }
+
+  .expand-icon {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    transition: transform 0.3s ease;
+    margin-left: 12px;
+  }
+
+  .score-card.collapsible[data-expanded="true"] .expand-icon {
+    transform: rotate(180deg);
+  }
+
+  .score-details {
+    padding: 0 20px 20px;
+    overflow: hidden;
+    transition: all 0.4s ease;
+  }
+
+  /* Favicon */
+  .domain-favicon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    box-shadow: var(--neu-sm);
+    object-fit: cover;
+  }
+
+  /* ── TYPING INDICATOR ── */
+  .typing-indicator {
+    display: none;
+    align-self: flex-start;
+    padding: 12px 18px;
+    background: var(--bg);
+    box-shadow: var(--neu-raised);
+    border-radius: 18px 18px 18px 4px;
+  }
+  .typing-indicator.visible { display: flex; gap: 5px; align-items: center; }
+  .typing-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--accent-blue); opacity: 0.4;
+    animation: typedot 1.2s ease infinite;
+  }
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes typedot {
+    0%,100% { opacity:0.4; transform:scale(0.8); }
+    50% { opacity:1; transform:scale(1.1); }
+  }
+
+  /* ── SEARCH BAR (fixed bottom after first use) ── */
+  .search-wrap {
+    position: relative;
+    z-index: 10;
+    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* center state */
+  .search-wrap.center {
+    max-width: 660px;
+    width: calc(100% - 48px);
+    margin: 32px auto 0;
+  }
+
+  /* bottom fixed state */
+  .search-wrap.bottom {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: 0;
+    max-width: 100%;
+    padding: 12px 24px 20px;
+    background: linear-gradient(to top, var(--bg) 70%, transparent);
+  }
+
+  .search-wrap.bottom .search-inner {
+    max-width: 660px;
+    margin: 0 auto;
+  }
+
+  .search-box {
+    display: flex; align-items: center;
+    border-radius: 14px; box-shadow: var(--neu-inset);
+    padding: 4px 4px 4px 20px; gap: 8px;
+    background: var(--bg);
+  }
+
+  .search-input {
+    flex: 1; border: none; background: transparent;
+    font-family: 'DM Mono', monospace; font-size: 14px;
+    color: var(--text-primary); outline: none; padding: 14px 0;
+  }
+  .search-input::placeholder { color: var(--text-tertiary); font-family: 'DM Mono', monospace; }
+
+  .search-btn {
+    background: var(--accent-blue); color: white; border: none;
+    border-radius: 10px; padding: 12px 28px;
+    font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+    cursor: pointer;
+    box-shadow: 3px 3px 8px rgba(74,143,255,0.35);
+    transition: all 0.15s; white-space: nowrap;
+  }
+  .search-btn:hover { background: #3d7fee; transform: translateY(-1px); }
+  .search-btn:active { transform: translateY(0); box-shadow: inset 2px 2px 6px rgba(0,0,0,0.15); }
+  .search-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  /* scanning animation on btn */
+  .search-btn.scanning {
+    background: var(--bg);
+    color: var(--accent-blue);
+    box-shadow: var(--neu-inset);
+    animation: none;
+  }
+
+  .hint-text {
+    text-align: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-tertiary);
+    margin-top: 12px;
+    letter-spacing: 0.06em;
+    transition: opacity 0.3s;
+  }
+
+  /* footer */
+  .footer {
+    text-align: center;
+    padding: 20px 24px 0;
+    font-size: 11px;
+    color: var(--text-tertiary);
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.06em;
+    transition: opacity 0.4s;
+  }
+  .footer a { color: var(--accent-blue); text-decoration: none; }
+  .footer .sep { margin: 0 8px; opacity: 0.4; }
+
+  .hero-bottom { display: flex; flex-direction: column; align-items: center; }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- STATUS -->
+  <div class="status-bar" id="statusBar">
+    <div class="status-pill">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText">Connecting...</span>
+    </div>
+  </div>
+
+  <!-- HERO LOGO -->
+  <div class="hero" id="hero">
+    <div class="logo"><span class="alpha">Alpha</span> <span class="search">Search</span></div>
+  </div>
+
+  <!-- CHAT OUTPUT -->
+  <div class="chat-area" id="chatArea"></div>
+
+  <!-- SEARCH BAR -->
+  <div class="hero-bottom" id="heroBottom">
+    <div class="search-wrap center" id="searchWrap">
+      <div class="search-inner">
+        <div class="search-box">
+          <input class="search-input" id="searchInput"
+            type="text"
+            placeholder="enter a url or name to search..."
+            autocomplete="off" spellcheck="false" />
+          <button class="search-btn" id="searchBtn" onclick="handleSearch()">Check</button>
+        </div>
+      </div>
+    </div>
+    <div class="hint-text" id="hintText">Find out if AI can find you.</div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer" id="footer">
+    © 2026 Alpha Search
+    <span class="sep">·</span><a href="#">Docs</a>
+    <span class="sep">·</span><a href="#">API</a>
+    <span class="sep">·</span><a href="#">Status</a>
+    <span class="sep">·</span><span style="opacity:0.6">powered by Gridnet</span>
+  </div>
+
+</div>
+
+<script>
+  // ── STATUS ──
+  setTimeout(() => {
+    document.getElementById('statusDot').className = 'status-dot live';
+    document.getElementById('statusText').textContent = 'Index live · 2.4M domains';
+  }, 1600);
+
+  // ── STATE ──
+  let shifted = false;
+
+  // ── CHECK DEFINITIONS (for UI rendering) ──
+  const checks = [
+    { key: 'jsonLd',  name: 'JSON-LD',      sub: 'Structured data in page <head>', pts: 10 },
+    { key: 'llmsTxt', name: 'llms.txt',     sub: 'AI welcome file at /llms.txt',  pts: 12 },
+    { key: 'openApi', name: 'OpenAPI Spec', sub: 'Machine-readable API docs',     pts: 13 },
+    { key: 'mcp',     name: 'MCP Endpoint', sub: 'Live agent-callable endpoint',  pts: 15 },
+  ];
+
+  const suggestions = {
+    llmsTxt: { text: 'Add llms.txt to your domain root',           boost: '+12 pts' },
+    jsonLd:  { text: 'Add JSON-LD schema to your homepage <head>', boost: '+10 pts' },
+    openApi: { text: 'Publish an OpenAPI spec for your API',       boost: '+13 pts' },
+    mcp:     { text: 'Deploy an MCP endpoint for AI agents',       boost: '+15 pts' },
+  };
+
+  // ── HELPERS ──
+  function extractDomain(input) {
+    try {
+      const url = input.startsWith('http') ? input : 'https://' + input;
+      return new URL(url).hostname.replace('www.', '');
+    } catch {
+      return input.replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0];
+    }
+  }
+
+  function detectQueryType(input) {
+    const trimmed = input.trim();
+    
+    // URL patterns: contains dot with no spaces, or starts with http
+    const isUrl = /^https?:\/\//i.test(trimmed) ||
+      (/\S+\.\S+/.test(trimmed) && !trimmed.includes(' '));
+    
+    return isUrl ? 'url' : 'name';
+  }
+
+  // ── SHIFT LAYOUT ──
+  function shiftLayout() {
+    if (shifted) return;
+    shifted = true;
+
+    const hero = document.getElementById('hero');
+    const searchWrap = document.getElementById('searchWrap');
+    const hintText = document.getElementById('hintText');
+    const footer = document.getElementById('footer');
+    const heroBottom = document.getElementById('heroBottom');
+    const chatArea = document.getElementById('chatArea');
+
+    hero.classList.add('shifted');
+
+    // detach search from heroBottom, fix to bottom
+    searchWrap.classList.remove('center');
+    searchWrap.classList.add('bottom');
+    document.body.appendChild(searchWrap);
+
+    hintText.style.display = 'none';
+    footer.style.opacity = '0';
+    footer.style.pointerEvents = 'none';
+
+    chatArea.classList.add('visible');
+  }
+
+  // ── BUILD SCORE CARD ──
+  function buildScoreCard(domain, data, pageTitle, pageUrl, isCollapsible = false) {
+    // Map API response to UI format
+    const p = {
+      score: data.score || 0,
+      grade: data.grade || 'Not AI Ready',
+      gradeClass: data.gradeClass || 'not-ready',
+      jsonLd: data.machineProfile?.jsonLd || false,
+      llmsTxt: data.machineProfile?.llmsTxt || false,
+      openApi: data.machineProfile?.openApi || false,
+      mcp: data.machineProfile?.mcp || false
+    };
+
+    // Favicon URL
+    const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
+
+    // Optional page title for name search results
+    const titleHTML = pageTitle ? `<div class="page-title">${pageTitle}</div>` : '';
+
+    // check rows html
+    const rowsHTML = checks.map(c => {
+      const passed = p[c.key];
+      return `
+        <div class="check-row">
+          <div class="check-left">
+            <div class="check-icon ${passed?'pass':'fail'}">${passed?'✓':'✗'}</div>
+            <div>
+              <div class="check-name">${c.name}</div>
+              <div class="check-sub">${c.sub}</div>
+            </div>
+          </div>
+          <div class="check-pts ${passed?'pos':'zero'}">${passed?'+'+c.pts+' pts':'0 pts'}</div>
+        </div>`;
+    }).join('');
+
+    const missing = checks.filter(c => !p[c.key]);
+    const suggHTML = missing.length === 0 ? '' : `
+      <div class="suggestions">
+        <div class="suggestions-title">What to do next</div>
+        ${missing.map(c => {
+          const s = suggestions[c.key];
+          return `<div class="suggestion-item">
+            <span class="suggestion-arrow">→</span>
+            <span>${s.text}</span>
+            <span class="suggestion-boost">${s.boost}</span>
+          </div>`;
+        }).join('')}
+      </div>`;
+
+    // Second action button - either Claim Listing or View Page
+    const secondButton = pageUrl 
+      ? `<button class="card-btn" onclick="window.open('${pageUrl}', '_blank')">↗ View Page</button>`
+      : `<button class="card-btn">✦ Claim Listing</button>`;
+
+    // Generate unique ID for collapsible
+    const cardId = 'card_' + domain.replace(/\./g, '_') + '_' + Date.now();
+
+    // If collapsible, wrap details in expandable section
+    if (isCollapsible) {
+      return `
+        <div class="score-card collapsible" data-expanded="false">
+          <div class="score-header-compact" onclick="toggleCard('${cardId}')">
+            <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+              <img src="${faviconUrl}" alt="${domain}" class="domain-favicon" onerror="this.style.display='none'">
+              <div style="flex: 1;">
+                ${titleHTML}
+                <div class="score-domain">${domain}</div>
+                <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+                  <div class="score-grade-pill ${p.gradeClass}">● ${p.grade}</div>
+                  <div class="crawled-badge"><div class="crawled-dot"></div>${data.cached || data.fromCache ? 'cached' : 'just now'}</div>
+                </div>
+              </div>
+              <div class="score-number-compact">
+                <div class="score-big">${p.score}<span>/100</span></div>
+              </div>
+              <div class="expand-icon">▼</div>
+            </div>
+          </div>
+          <div class="score-details" id="${cardId}" style="display: none;">
+            <div class="score-bar-bg">
+              <div class="score-bar-fill" id="bar_${domain.replace(/\./g,'_')}" style="width:0%"></div>
+            </div>
+            <div class="breakdown-title">Machine Profile</div>
+            ${rowsHTML}
+            ${suggHTML}
+            <div class="card-actions">
+              <button class="card-btn" onclick="shareScore('${domain}', ${p.score})">↗ Share Score</button>
+              ${secondButton}
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // Non-collapsible (original format with favicon)
+    return `
+      <div class="score-card">
+        <div class="score-header">
+          <div>
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+              <img src="${faviconUrl}" alt="${domain}" class="domain-favicon" onerror="this.style.display='none'">
+              <div>
+                ${titleHTML}
+                <div class="score-domain">${domain}</div>
+              </div>
+            </div>
+            <div class="score-grade-pill ${p.gradeClass}">● ${p.grade}</div>
+            <div class="crawled-badge"><div class="crawled-dot"></div>${data.cached || data.fromCache ? 'cached' : 'just now'}</div>
+          </div>
+          <div class="score-number">
+            <div class="score-big">${p.score}<span>/100</span></div>
+            <div class="score-label">AI Readiness Score</div>
+          </div>
+        </div>
+        <div class="score-bar-bg">
+          <div class="score-bar-fill" id="bar_${domain.replace(/\./g,'_')}" style="width:0%"></div>
+        </div>
+        <div class="breakdown-title">Machine Profile</div>
+        ${rowsHTML}
+        ${suggHTML}
+        <div class="card-actions">
+          <button class="card-btn" onclick="shareScore('${domain}', ${p.score})">↗ Share Score</button>
+          ${secondButton}
+        </div>
+      </div>`;
+  }
+
+  // ── BUILD AGGREGATE CARD ──
+  function buildAggregateCard(data) {
+    const message = data.message || `${data.totalPages} pages found across the web`;
+    
+    return `
+      <div class="aggregate-card">
+        <div class="aggregate-header">
+          <div>
+            <div class="aggregate-query">"${data.query}"</div>
+            <div class="aggregate-sub">${message}</div>
+          </div>
+          <div class="score-number">
+            <div class="score-big">${data.avgScore}<span>/100</span></div>
+            <div class="score-label">Avg. AI Readiness Score</div>
+          </div>
+        </div>
+        <div class="score-bar-bg">
+          <div class="score-bar-fill" id="aggregate-bar" style="width:0%"></div>
+        </div>
+        <div class="score-grade-pill ${data.gradeClass}" style="margin-top: 12px;">● ${data.grade} — AI Presence</div>
+        <div class="card-actions">
+          <button class="card-btn" onclick="shareNameScore('${data.query}', ${data.avgScore})">↗ Share Score</button>
+        </div>
+      </div>`;
+  }
+
+  // ── HANDLE SEARCH (ROUTER) ──
+  async function handleSearch() {
+    const input = document.getElementById('searchInput').value.trim();
+    if (!input) return;
+
+    const queryType = detectQueryType(input);
+    
+    if (queryType === 'url') {
+      await handleUrlCheck(input);
+    } else {
+      await handleNameSearch(input);
+    }
+  }
+
+  // ── HANDLE URL CHECK (EXISTING FLOW) ──
+  async function handleUrlCheck(input) {
+    const domain = extractDomain(input);
+    const chatArea = document.getElementById('chatArea');
+    const btn = document.getElementById('searchBtn');
+    const searchInput = document.getElementById('searchInput');
+
+    // first search — shift layout
+    shiftLayout();
+
+    // disable input
+    btn.disabled = true;
+    btn.textContent = 'Scanning...';
+    btn.classList.add('scanning');
+    searchInput.disabled = true;
+
+    // clear input
+    searchInput.value = '';
+
+    // add user bubble
+    const userBubble = document.createElement('div');
+    userBubble.className = 'bubble-user';
+    userBubble.textContent = domain;
+    chatArea.appendChild(userBubble);
+
+    // typing indicator
+    const typing = document.createElement('div');
+    typing.className = 'typing-indicator visible';
+    typing.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+    chatArea.appendChild(typing);
+
+    scrollBottom();
+
+    try {
+      // REAL API CALL
+      const response = await fetch('/api/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: domain })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      // Remove typing indicator
+      typing.remove();
+
+      // Build and append result
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble-system';
+      bubble.innerHTML = buildScoreCard(domain, data);
+      chatArea.appendChild(bubble);
+
+      // Animate bar fill
+      const barId = 'bar_' + domain.replace(/\./g, '_');
+      setTimeout(() => {
+        const bar = document.getElementById(barId);
+        if (bar) bar.style.width = data.score + '%';
+      }, 100);
+
+    } catch (error) {
+      console.error('Crawl error:', error);
+      
+      // Remove typing indicator
+      typing.remove();
+
+      // Show error card
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble-system';
+      bubble.innerHTML = buildScoreCard(domain, {
+        score: 0,
+        grade: 'Not AI Ready',
+        gradeClass: 'not-ready',
+        machineProfile: {
+          jsonLd: false,
+          llmsTxt: false,
+          openApi: false,
+          mcp: false,
+          resolves: false
+        },
+        cached: false
+      });
+      chatArea.appendChild(bubble);
+    }
+
+    // Re-enable input
+    btn.disabled = false;
+    btn.textContent = 'Check';
+    btn.classList.remove('scanning');
+    searchInput.disabled = false;
+    searchInput.placeholder = 'enter a url or name to search...';
+    searchInput.focus();
+
+    scrollBottom();
+  }
+
+  // ── HANDLE NAME SEARCH (NEW FLOW) ──
+  async function handleNameSearch(query) {
+    const chatArea = document.getElementById('chatArea');
+    const btn = document.getElementById('searchBtn');
+    const searchInput = document.getElementById('searchInput');
+
+    // first search — shift layout
+    shiftLayout();
+
+    // disable input
+    btn.disabled = true;
+    btn.textContent = 'Searching...';
+    btn.classList.add('scanning');
+    searchInput.disabled = true;
+
+    // clear input
+    searchInput.value = '';
+
+    // add user bubble
+    const userBubble = document.createElement('div');
+    userBubble.className = 'bubble-user';
+    userBubble.textContent = query;
+    chatArea.appendChild(userBubble);
+
+    // Status narrative bubble
+    const statusBubble = document.createElement('div');
+    statusBubble.className = 'bubble-system status-narrative';
+    statusBubble.style.cssText = 'padding: 16px 20px; margin: 12px 0;';
+    statusBubble.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div class="typing-indicator visible" style="margin: 0;">
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+        </div>
+        <div>
+          <div class="status-main" style="font-size: 13px; color: var(--text-primary); margin-bottom: 4px;">
+            Finding pages for "${query}"...
+          </div>
+          <div class="status-sub" style="font-size: 11px; color: var(--text-tertiary); font-family: 'DM Mono', monospace;">
+            Searching the web
+          </div>
+        </div>
+      </div>
+    `;
+    chatArea.appendChild(statusBubble);
+    scrollBottom();
+
+    try {
+      // REAL API CALL
+      const response = await fetch('/api/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: query })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      // Update status: Found pages, now crawling
+      const statusMain = statusBubble.querySelector('.status-main');
+      const statusSub = statusBubble.querySelector('.status-sub');
+      
+      if (data.totalPages > 0) {
+        statusMain.textContent = `Found ${data.totalPages} pages`;
+        statusSub.textContent = 'Crawling each site for AI readiness signals...';
+        await new Promise(resolve => setTimeout(resolve, 600));
+        
+        // Update to scoring phase
+        statusMain.textContent = `Analyzing ${data.totalPages} sites`;
+        statusSub.innerHTML = `Checking for <span style="color: var(--accent-purple);">JSON-LD</span>, <span style="color: var(--accent-purple);">llms.txt</span>, <span style="color: var(--accent-purple);">OpenAPI</span>, <span style="color: var(--accent-purple);">MCP</span>`;
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+        // Final update
+        statusMain.textContent = `✓ Scored ${data.results?.length || 0} sites`;
+        statusSub.textContent = `Average AI Readiness: ${data.avgScore}/100`;
+        await new Promise(resolve => setTimeout(resolve, 400));
+      }
+
+      // Remove status bubble
+      statusBubble.remove();
+
+      // Render aggregate card first
+      const aggregateBubble = document.createElement('div');
+      aggregateBubble.className = 'bubble-system';
+      aggregateBubble.innerHTML = buildAggregateCard(data);
+      chatArea.appendChild(aggregateBubble);
+
+      // Animate aggregate bar fill
+      setTimeout(() => {
+        const bar = document.getElementById('aggregate-bar');
+        if (bar) bar.style.width = data.avgScore + '%';
+      }, 100);
+
+      scrollBottom();
+
+      // Render individual cards with stagger and narrative
+      if (data.results && data.results.length > 0) {
+        // Add a mini narrative for each result
+        const narrativeBubble = document.createElement('div');
+        narrativeBubble.className = 'bubble-system';
+        narrativeBubble.style.cssText = 'padding: 12px 16px; margin: 8px 0; font-size: 11px; color: var(--text-tertiary); font-family: "DM Mono", monospace;';
+        narrativeBubble.textContent = `Revealing ${data.results.length} AI readiness profiles...`;
+        chatArea.appendChild(narrativeBubble);
+        scrollBottom();
+        
+        await new Promise(resolve => setTimeout(resolve, 400));
+        narrativeBubble.remove();
+        
+        data.results.forEach((result, i) => {
+          setTimeout(() => {
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble-system';
+            // Use collapsible cards for name search results
+            bubble.innerHTML = buildScoreCard(result.domain, result, result.pageTitle, result.pageUrl, true);
+            chatArea.appendChild(bubble);
+
+            scrollBottom();
+          }, i * 80);
+        });
+      }
+
+    } catch (error) {
+      console.error('Name search error:', error);
+      
+      // Remove typing indicator
+      typing.remove();
+
+      // Show error card
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble-system';
+      bubble.innerHTML = buildAggregateCard({
+        query: query,
+        totalPages: 0,
+        avgScore: 0,
+        grade: 'Not AI Ready',
+        gradeClass: 'not-ready',
+        results: [],
+        message: 'Search failed - please try again'
+      });
+      chatArea.appendChild(bubble);
+    }
+
+    // Re-enable input
+    btn.disabled = false;
+    btn.textContent = 'Search';
+    btn.classList.remove('scanning');
+    searchInput.disabled = false;
+    searchInput.placeholder = 'enter a url or name to search...';
+    searchInput.focus();
+
+    scrollBottom();
+  }
+
+  function scrollBottom() {
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+  }
+
+  function toggleCard(cardId) {
+    const details = document.getElementById(cardId);
+    const card = details.closest('.score-card');
+    const isExpanded = card.getAttribute('data-expanded') === 'true';
+    
+    if (isExpanded) {
+      details.style.display = 'none';
+      card.setAttribute('data-expanded', 'false');
+    } else {
+      details.style.display = 'block';
+      card.setAttribute('data-expanded', 'true');
+      
+      // Animate bar fill when expanding
+      setTimeout(() => {
+        const bar = details.querySelector('.score-bar-fill');
+        if (bar && bar.style.width === '0%') {
+          const domain = cardId.replace('card_', '').replace(/_\d+$/, '').replace(/_/g, '.');
+          const scoreMatch = card.textContent.match(/(\d+)\/100/);
+          if (scoreMatch) {
+            bar.style.width = scoreMatch[1] + '%';
+          }
+        }
+      }, 50);
+    }
+  }
+
+  function shareScore(domain, score) {
+    const text = `${domain} scored ${score}/100 on Alpha Search — is your website AI-ready? https://alpha-search-index.web.app`;
+    if (navigator.share) { 
+      navigator.share({ text }); 
+    } else { 
+      navigator.clipboard.writeText(text).then(() => alert('Copied to clipboard!')); 
+    }
+  }
+
+  function shareNameScore(query, score) {
+    const text = `"${query}" scored ${score}/100 on Alpha Search — find out how AI-visible any name is. https://alpha-search-index.web.app`;
+    if (navigator.share) { 
+      navigator.share({ text }); 
+    } else { 
+      navigator.clipboard.writeText(text).then(() => alert('Copied to clipboard!')); 
+    }
+  }
+
+  document.getElementById('searchInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleSearch();
+  });
+</script>
+</body>
+</html>
