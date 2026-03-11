@@ -1,0 +1,63 @@
+# Alpha Search - Machine Web Index
+
+## Description
+Alpha Search is the first search engine designed specifically for AI agents. We help you discover how "AI-ready" any person, brand, or organization is across the web by crawling for machine-readable signals.
+
+## Features
+- Name and entity search across the web
+- AI readiness scoring (0-100)
+- Machine profile analysis (JSON-LD, llms.txt, OpenAPI, MCP)
+- Real-time crawling and caching
+- Beautiful neumorphic UI
+
+## API
+
+### Check a domain's AI readiness
+POST /api/check
+Content-Type: application/json
+
+{
+  "url": "example.com"
+}
+
+Returns:
+{
+  "domain": "example.com",
+  "score": 30,
+  "grade": "Listed",
+  "machineProfile": {
+    "jsonLd": true,
+    "llmsTxt": true,
+    "openApi": false,
+    "mcp": false
+  }
+}
+
+### Search for a name or brand
+POST /api/search
+Content-Type: application/json
+
+{
+  "query": "Michael Jordan"
+}
+
+Returns:
+{
+  "query": "Michael Jordan",
+  "totalPages": 7,
+  "avgScore": 25,
+  "results": [...]
+}
+
+## About
+Built by Gridnet - building the AI-native internet.
+
+## Contact
+- Website: https://gridnetai.com
+- Email: admin@gridnetai.com
+- Twitter: @gridnetai
+
+## Learn More
+- Docs: https://alphasearch.gridnetai.com/docs
+- API: https://alphasearch.gridnetai.com/api
+- Status: https://alphasearch.gridnetai.com/status
