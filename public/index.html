@@ -378,7 +378,7 @@
   }
 
   .score-header-compact {
-    padding: 16px 20px;
+    padding: 10px 16px;
     transition: all 0.3s ease;
   }
 
@@ -392,14 +392,14 @@
   }
 
   .score-number-compact .score-big {
-    font-size: 32px;
+    font-size: 28px;
   }
 
   .expand-icon {
-    font-size: 12px;
+    font-size: 10px;
     color: var(--text-tertiary);
     transition: transform 0.3s ease;
-    margin-left: 12px;
+    margin-left: 8px;
   }
 
   .score-card.collapsible[data-expanded="true"] .expand-icon {
@@ -719,14 +719,14 @@
       return `
         <div class="score-card collapsible" data-expanded="false">
           <div class="score-header-compact" onclick="toggleCard('${cardId}')">
-            <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
-              <img src="${faviconUrl}" alt="${domain}" class="domain-favicon" onerror="this.style.display='none'">
+            <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
+              <img src="${faviconUrl}" alt="${domain}" class="domain-favicon" style="width: 24px; height: 24px;" onerror="this.style.display='none'">
               <div style="flex: 1;">
-                ${titleHTML}
-                <div class="score-domain">${domain}</div>
-                <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
-                  <div class="score-grade-pill ${p.gradeClass}">● ${p.grade}</div>
-                  <div class="crawled-badge"><div class="crawled-dot"></div>${data.cached || data.fromCache ? 'cached' : 'just now'}</div>
+                ${titleHTML ? `<div class="page-title" style="font-size: 10px; margin-bottom: 2px;">${pageTitle}</div>` : ''}
+                <div class="score-domain" style="font-size: 14px; margin-bottom: 3px;">${domain}</div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <div class="score-grade-pill ${p.gradeClass}" style="padding: 3px 10px; font-size: 10px;">● ${p.grade}</div>
+                  <div class="crawled-badge" style="padding: 2px 8px; font-size: 9px;"><div class="crawled-dot" style="width: 4px; height: 4px;"></div>${data.cached || data.fromCache ? 'cached' : 'just now'}</div>
                 </div>
               </div>
               <div class="score-number-compact">
@@ -789,6 +789,34 @@
   function buildAggregateCard(data) {
     const message = data.message || `${data.totalPages} pages found across the web`;
     
+    // Generate recommendations based on score
+    let recommendations = '';
+    if (data.avgScore < 50 && data.results && data.results.length > 0) {
+      recommendations = `
+        <div style="margin-top: 16px; padding: 14px; background: rgba(74, 143, 255, 0.08); border-radius: 12px; border-left: 3px solid var(--accent-blue);">
+          <div style="font-size: 11px; font-weight: 600; color: var(--accent-blue); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;">💡 To Reach 50+ ("Machine Ready")</div>
+          <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.5;">
+            Add <strong>llms.txt</strong> (+12 pts), <strong>JSON-LD</strong> (+10 pts), or <strong>OpenAPI spec</strong> (+13 pts) to your sites. Even small improvements make you more AI-discoverable.
+          </div>
+        </div>`;
+    } else if (data.avgScore >= 50 && data.avgScore < 70) {
+      recommendations = `
+        <div style="margin-top: 16px; padding: 14px; background: rgba(106, 27, 154, 0.08); border-radius: 12px; border-left: 3px solid #6a1b9a;">
+          <div style="font-size: 11px; font-weight: 600; color: #6a1b9a; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;">🎯 To Reach 70+ ("AI Ready")</div>
+          <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.5;">
+            You're machine-ready! Add <strong>MCP endpoints</strong> (+15 pts) to become fully AI-ready and enable agent-to-agent communication.
+          </div>
+        </div>`;
+    } else if (data.avgScore >= 70) {
+      recommendations = `
+        <div style="margin-top: 16px; padding: 14px; background: rgba(52, 199, 138, 0.08); border-radius: 12px; border-left: 3px solid var(--accent-green);">
+          <div style="font-size: 11px; font-weight: 600; color: var(--accent-green); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;">🌟 Leading the AI-Native Web</div>
+          <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.5;">
+            Excellent! You're setting the standard for AI-ready web presence. Consider sharing your implementation as a case study.
+          </div>
+        </div>`;
+    }
+    
     return `
       <div class="aggregate-card">
         <div class="aggregate-header">
@@ -805,6 +833,7 @@
           <div class="score-bar-fill" id="aggregate-bar" style="width:0%"></div>
         </div>
         <div class="score-grade-pill ${data.gradeClass}" style="margin-top: 12px;">● ${data.grade} — AI Presence</div>
+        ${recommendations}
         <div class="card-actions">
           <button class="card-btn" onclick="shareNameScore('${data.query}', ${data.avgScore})">↗ Share Score</button>
         </div>
@@ -835,7 +864,17 @@
     // first search — shift layout
     shiftLayout();
 
+    // Add session separator if not first search
+    const chatArea = document.getElementById('chatArea');
+    if (chatArea.children.length > 0) {
+      const separator = document.createElement('div');
+      separator.style.cssText = 'margin: 32px 0; height: 1px; background: linear-gradient(90deg, transparent, var(--shadow-dark), transparent); opacity: 0.3;';
+      chatArea.appendChild(separator);
+    }
+
     // disable input
+    const btn = document.getElementById('searchBtn');
+    const searchInput = document.getElementById('searchInput');
     btn.disabled = true;
     btn.textContent = 'Scanning...';
     btn.classList.add('scanning');
@@ -933,7 +972,17 @@
     // first search — shift layout
     shiftLayout();
 
+    // Add session separator if not first search
+    const chatArea = document.getElementById('chatArea');
+    if (chatArea.children.length > 0) {
+      const separator = document.createElement('div');
+      separator.style.cssText = 'margin: 32px 0; height: 1px; background: linear-gradient(90deg, transparent, var(--shadow-dark), transparent); opacity: 0.3;';
+      chatArea.appendChild(separator);
+    }
+
     // disable input
+    const btn = document.getElementById('searchBtn');
+    const searchInput = document.getElementById('searchInput');
     btn.disabled = true;
     btn.textContent = 'Searching...';
     btn.classList.add('scanning');
