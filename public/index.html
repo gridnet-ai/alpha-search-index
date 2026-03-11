@@ -628,20 +628,35 @@
 
     .score-domain {
       font-size: 12px !important;
+      word-break: break-word;
     }
 
     .score-grade-pill {
       font-size: 9px !important;
       padding: 2px 8px !important;
+      white-space: nowrap;
     }
 
     .crawled-badge {
       font-size: 8px !important;
       padding: 2px 6px !important;
+      white-space: nowrap;
+    }
+
+    .score-number-compact {
+      flex-shrink: 0;
+      min-width: 70px;
+      text-align: right;
     }
 
     .score-number-compact .score-big {
-      font-size: 24px;
+      font-size: 22px;
+      white-space: nowrap;
+    }
+
+    .expand-icon {
+      flex-shrink: 0;
+      margin-left: 4px;
     }
   }
 
@@ -660,8 +675,24 @@
       font-size: 12px;
     }
 
+    .score-header-compact {
+      padding: 8px 10px;
+    }
+
+    .score-domain {
+      font-size: 11px !important;
+    }
+
+    .score-number-compact {
+      min-width: 60px;
+    }
+
     .score-number-compact .score-big {
-      font-size: 20px;
+      font-size: 18px;
+    }
+
+    .expand-icon {
+      font-size: 9px;
     }
   }
 </style>
