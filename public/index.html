@@ -618,45 +618,49 @@
 
     /* Collapsible card header more compact */
     .score-header-compact {
-      padding: 8px 12px;
+      padding: 8px 10px;
     }
 
     .domain-favicon {
-      width: 20px !important;
-      height: 20px !important;
+      width: 18px !important;
+      height: 18px !important;
     }
 
     .score-domain {
-      font-size: 12px !important;
+      font-size: 11px !important;
       word-break: break-word;
+      line-height: 1.2;
     }
 
     .score-grade-pill {
-      font-size: 9px !important;
-      padding: 2px 8px !important;
-      white-space: nowrap;
-    }
-
-    .crawled-badge {
       font-size: 8px !important;
       padding: 2px 6px !important;
       white-space: nowrap;
     }
 
+    .crawled-badge {
+      font-size: 7px !important;
+      padding: 2px 5px !important;
+      white-space: nowrap;
+    }
+
     .score-number-compact {
       flex-shrink: 0;
-      min-width: 70px;
+      min-width: 60px;
+      max-width: 60px;
       text-align: right;
     }
 
     .score-number-compact .score-big {
-      font-size: 22px;
+      font-size: 18px;
       white-space: nowrap;
+      line-height: 1;
     }
 
     .expand-icon {
       flex-shrink: 0;
-      margin-left: 4px;
+      margin-left: 2px;
+      font-size: 9px;
     }
   }
 
@@ -882,12 +886,12 @@
       return `
         <div class="score-card collapsible" data-expanded="false">
           <div class="score-header-compact" onclick="toggleCard('${cardId}')">
-            <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
-              <img src="${faviconUrl}" alt="${domain}" class="domain-favicon" style="width: 24px; height: 24px;" onerror="this.style.display='none'">
-              <div style="flex: 1;">
-                ${titleHTML ? `<div class="page-title" style="font-size: 10px; margin-bottom: 2px;">${pageTitle}</div>` : ''}
-                <div class="score-domain" style="font-size: 14px; margin-bottom: 3px;">${domain}</div>
-                <div style="display: flex; align-items: center; gap: 6px;">
+            <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;">
+              <img src="${faviconUrl}" alt="${domain}" class="domain-favicon" style="width: 24px; height: 24px; flex-shrink: 0;" onerror="this.style.display='none'">
+              <div style="flex: 1; min-width: 0; overflow: hidden;">
+                ${titleHTML ? `<div class="page-title" style="font-size: 10px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${pageTitle}</div>` : ''}
+                <div class="score-domain" style="font-size: 14px; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${domain}</div>
+                <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
                   <div class="score-grade-pill ${p.gradeClass}" style="padding: 3px 10px; font-size: 10px;">● ${p.grade}</div>
                   <div class="crawled-badge" style="padding: 2px 8px; font-size: 9px;"><div class="crawled-dot" style="width: 4px; height: 4px;"></div>${data.cached || data.fromCache ? 'cached' : 'just now'}</div>
                 </div>
