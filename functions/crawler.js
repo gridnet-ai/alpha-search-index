@@ -116,77 +116,111 @@ function getGrade(score) {
  * - Homepage (for JSON-LD)
  * 
  * @param {string} domain - Normalized domain (e.g., "stripe.com")
- * @returns {Promise<Object>} - Crawl results with score and grade
+ * @returns {Promise<Object>} - Crawl results with score and grade (or error state)
  */
 async function crawlDomain(domain) {
   const base = `https://${domain}`;
   
-  // Parallel fetch all endpoints with timeouts
-  // Increased timeouts: 15s for files, 20s for homepage (handles slow servers)
-  const [llmsTxtResult, mcpResult, openApiResult, homepageResult] = await Promise.allSettled([
-    fetch(`${base}/llms.txt`, { 
-      signal: AbortSignal.timeout(15000),
-      headers: { 'User-Agent': 'AlphaSearchBot/1.0 (+https://alpha-search-index.web.app)' }
-    }),
-    fetch(`${base}/.well-known/mcp`, { 
-      signal: AbortSignal.timeout(15000),
-      headers: { 'User-Agent': 'AlphaSearchBot/1.0 (+https://alpha-search-index.web.app)' }
-    }),
-    fetch(`${base}/openapi.json`, { 
-      signal: AbortSignal.timeout(15000),
-      headers: { 'User-Agent': 'AlphaSearchBot/1.0 (+https://alpha-search-index.web.app)' }
-    }),
-    fetch(base, { 
-      signal: AbortSignal.timeout(20000),
-      headers: { 'User-Agent': 'AlphaSearchBot/1.0 (+https://alpha-search-index.web.app)' }
-    })
-  ]);
-  
-  // Build results object
-  const results = {
-    llmsTxt: llmsTxtResult.status === 'fulfilled' && llmsTxtResult.value.ok,
-    mcp: mcpResult.status === 'fulfilled' && mcpResult.value.ok,
-    openApi: openApiResult.status === 'fulfilled' && openApiResult.value.ok,
-    jsonLd: false,
-    resolves: false
-  };
-  
-  // Parse homepage for JSON-LD
-  if (homepageResult.status === 'fulfilled' && homepageResult.value.ok) {
-    try {
-      const html = await homepageResult.value.text();
-      results.jsonLd = parseJsonLd(html);
-      results.resolves = true;
-      
-      // Debug logging for JSON-LD detection
-      console.log(`[${domain}] Homepage fetched: ${html.length} bytes, JSON-LD: ${results.jsonLd}`);
-      
-      // Log first 500 chars of HTML for debugging
-      if (process.env.DEBUG_CRAWL === 'true') {
-        console.log(`[${domain}] HTML preview:`, html.substring(0, 500));
+  try {
+    // Parallel fetch all endpoints with timeouts
+    // Increased timeouts: 15s for files, 20s for homepage (handles slow servers)
+    const [llmsTxtResult, mcpResult, openApiResult, homepageResult] = await Promise.allSettled([
+      fetch(`${base}/llms.txt`, { 
+        signal: AbortSignal.timeout(15000),
+        headers: { 'User-Agent': 'AlphaSearchBot/1.0 (+https://alpha-search-index.web.app)' }
+      }),
+      fetch(`${base}/.well-known/mcp`, { 
+        signal: AbortSignal.timeout(15000),
+        headers: { 'User-Agent': 'AlphaSearchBot/1.0 (+https://alpha-search-index.web.app)' }
+      }),
+      fetch(`${base}/openapi.json`, { 
+        signal: AbortSignal.timeout(15000),
+        headers: { 'User-Agent': 'AlphaSearchBot/1.0 (+https://alpha-search-index.web.app)' }
+      }),
+      fetch(base, { 
+        signal: AbortSignal.timeout(20000),
+        headers: { 'User-Agent': 'AlphaSearchBot/1.0 (+https://alpha-search-index.web.app)' }
+      })
+    ]);
+    
+    // Build results object
+    const results = {
+      llmsTxt: llmsTxtResult.status === 'fulfilled' && llmsTxtResult.value.ok,
+      mcp: mcpResult.status === 'fulfilled' && mcpResult.value.ok,
+      openApi: openApiResult.status === 'fulfilled' && openApiResult.value.ok,
+      jsonLd: false,
+      resolves: false
+    };
+    
+    // Parse homepage for JSON-LD
+    if (homepageResult.status === 'fulfilled' && homepageResult.value.ok) {
+      try {
+        const html = await homepageResult.value.text();
+        results.jsonLd = parseJsonLd(html);
+        results.resolves = true;
+        
+        // Debug logging for JSON-LD detection
+        console.log(`[${domain}] Homepage fetched: ${html.length} bytes, JSON-LD: ${results.jsonLd}`);
+        
+        // Log first 500 chars of HTML for debugging
+        if (process.env.DEBUG_CRAWL === 'true') {
+          console.log(`[${domain}] HTML preview:`, html.substring(0, 500));
+        }
+      } catch (error) {
+        console.error(`Failed to parse homepage for ${domain}:`, error.message);
+        results.resolves = false;
       }
-    } catch (error) {
-      console.error(`Failed to parse homepage for ${domain}:`, error.message);
+    } else {
       results.resolves = false;
+      console.log(`[${domain}] Homepage fetch failed:`, 
+        homepageResult.status === 'rejected' ? homepageResult.reason?.message : 'unknown error');
     }
-  } else {
-    results.resolves = false;
-    console.log(`[${domain}] Homepage fetch failed:`, 
-      homepageResult.status === 'rejected' ? homepageResult.reason?.message : 'unknown error');
+    
+    // If domain doesn't resolve at all, return error state
+    if (!results.resolves) {
+      return {
+        domain,
+        score: null,
+        grade: 'Could Not Score',
+        gradeClass: 'error',
+        machineProfile: results,
+        crawledAt: new Date(),
+        error: 'Domain unreachable or timed out'
+      };
+    }
+    
+    // Calculate score and grade
+    const score = calculateScore(results);
+    const { grade, gradeClass } = getGrade(score);
+    
+    return {
+      domain,
+      score,
+      grade,
+      gradeClass,
+      machineProfile: results,
+      crawledAt: new Date()
+    };
+    
+  } catch (error) {
+    // Network error, DNS failure, or catastrophic timeout
+    console.error(`[${domain}] Crawl failed:`, error.message);
+    return {
+      domain,
+      score: null,
+      grade: 'Could Not Score',
+      gradeClass: 'error',
+      machineProfile: {
+        llmsTxt: false,
+        mcp: false,
+        openApi: false,
+        jsonLd: false,
+        resolves: false
+      },
+      crawledAt: new Date(),
+      error: error.message
+    };
   }
-  
-  // Calculate score and grade
-  const score = calculateScore(results);
-  const { grade, gradeClass } = getGrade(score);
-  
-  return {
-    domain,
-    score,
-    grade,
-    gradeClass,
-    machineProfile: results,
-    crawledAt: new Date()
-  };
 }
 
 // Export functions
