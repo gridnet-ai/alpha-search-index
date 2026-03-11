@@ -24,7 +24,8 @@ const db = admin.firestore();
 exports.apiHandler = functions
   .runWith({
     timeoutSeconds: 300, // 5 minutes for name searches with multiple crawls
-    memory: '512MB'
+    memory: '512MB',
+    invoker: 'public'
   })
   .https.onRequest(async (req, res) => {
   // Enable CORS

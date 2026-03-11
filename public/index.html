@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Alpha Search — Machine Web Index</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -1014,8 +1015,10 @@
     } catch (error) {
       console.error('Name search error:', error);
       
-      // Remove typing indicator
-      typing.remove();
+      // Remove status bubble if it exists
+      if (statusBubble && statusBubble.parentNode) {
+        statusBubble.remove();
+      }
 
       // Show error card
       const bubble = document.createElement('div');
