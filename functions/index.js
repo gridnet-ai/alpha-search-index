@@ -21,7 +21,7 @@ const db = admin.firestore();
  * 
  * Returns crawl results with Alpha Rank Score
  */
-exports.api = functions
+exports.apiHandler = functions
   .runWith({
     timeoutSeconds: 300, // 5 minutes for name searches with multiple crawls
     memory: '512MB'
