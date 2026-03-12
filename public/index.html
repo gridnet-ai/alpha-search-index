@@ -963,8 +963,8 @@
   }
 
 
-  /* Persistent Account Button (stacks above search bar) */
-  .account-button-wrap {
+  /* Persistent Account Modal (stacks above search bar) */
+  .account-modal-wrap {
     position: relative;
     z-index: 10;
     transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
@@ -972,22 +972,22 @@
     opacity: 0;
   }
 
-  .account-button-wrap.visible {
+  .account-modal-wrap.visible {
     display: block;
     opacity: 1;
   }
 
   /* Center state (with search bar) */
-  .account-button-wrap.center {
+  .account-modal-wrap.center {
     max-width: 660px;
     width: calc(100% - 48px);
-    margin: 0 auto 12px;
+    margin: 0 auto 0;
   }
 
   /* Bottom fixed state (stacks above fixed search bar) */
-  .account-button-wrap.bottom {
+  .account-modal-wrap.bottom {
     position: fixed;
-    bottom: 88px; /* 20px above search bar (68px search height + 20px padding) */
+    bottom: 68px; /* Directly above search bar, no gap */
     left: 0;
     right: 0;
     margin: 0;
@@ -995,46 +995,70 @@
     padding: 0 24px;
   }
 
-  .account-button-wrap.bottom .account-button-inner {
+  .account-modal-wrap.bottom .account-modal-inner {
     max-width: 660px;
     margin: 0 auto;
   }
 
-  .account-button {
+  /* The modal container (not a button) */
+  .account-modal {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 10px;
-    padding: 12px 24px;
-    border-radius: 12px;
-    border: none;
+    gap: 16px;
+    padding: 14px 18px;
+    border-radius: 14px 14px 0 0; /* Rounded top, flat bottom to connect with search */
     background: var(--bg);
     box-shadow: var(--neu-raised);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Trust narrative on the left */
+  .account-narrative {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .account-narrative-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .account-narrative-text {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+  }
+
+  /* The actual button inside the modal */
+  .account-cta-button {
+    padding: 10px 20px;
+    border-radius: 10px;
+    border: none;
+    background: var(--accent-blue);
+    color: white;
     font-family: 'DM Sans', sans-serif;
     font-size: 13px;
     font-weight: 500;
-    color: var(--text-primary);
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    width: 100%;
+    box-shadow: 3px 3px 8px rgba(74,143,255,0.35);
+    transition: all 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
-  .account-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 6px 8px 16px #c8cad4, -6px -8px 16px #ffffff;
+  .account-cta-button:hover {
+    background: #3d7fee;
+    transform: translateY(-1px);
   }
 
-  .account-button-icon {
-    font-size: 16px;
-  }
-
-  .account-button-text {
-    flex: 1;
-    text-align: left;
+  .account-cta-button:active {
+    transform: translateY(0);
   }
 
   /* Logged in state - transforms to square avatar */
-  .account-button.logged-in {
+  .account-modal.logged-in {
     padding: 0;
     width: 48px;
     height: 48px;
@@ -1042,14 +1066,20 @@
     margin-left: auto;
     justify-content: center;
     overflow: hidden;
+    cursor: pointer;
   }
 
-  .account-button.logged-in .account-button-text,
-  .account-button.logged-in .account-button-icon {
+  .account-modal.logged-in:hover {
+    transform: translateY(-2px);
+    box-shadow: 6px 8px 16px #c8cad4, -6px -8px 16px #ffffff;
+  }
+
+  .account-modal.logged-in .account-narrative,
+  .account-modal.logged-in .account-cta-button {
     display: none;
   }
 
-  .account-button.logged-in .account-avatar {
+  .account-modal.logged-in .account-avatar {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1060,7 +1090,7 @@
     color: var(--accent-blue);
   }
 
-  .account-button .account-avatar {
+  .account-modal .account-avatar {
     display: none;
   }
 
@@ -1115,22 +1145,43 @@
     margin: 8px 0;
   }
 
+  /* Last indexed badge */
+  .last-indexed {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-tertiary);
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(90,95,122,0.08);
+  }
+
   @media (max-width: 768px) {
-    .account-button-wrap.center {
+    .account-modal-wrap.center {
       width: calc(100% - 32px);
     }
 
-    .account-button-wrap.bottom {
-      bottom: 78px; /* Adjust for mobile search bar height */
+    .account-modal-wrap.bottom {
+      bottom: 58px; /* Adjust for mobile search bar height */
       padding: 0 16px;
     }
 
-    .account-button {
-      font-size: 12px;
-      padding: 10px 20px;
+    .account-modal {
+      padding: 12px 16px;
+      gap: 12px;
+      flex-direction: column;
+      align-items: flex-start;
     }
 
-    .account-button.logged-in {
+    .account-narrative-text {
+      font-size: 11px;
+    }
+
+    .account-cta-button {
+      width: 100%;
+      font-size: 12px;
+    }
+
+    .account-modal.logged-in {
       width: 42px;
       height: 42px;
     }
@@ -1205,14 +1256,17 @@
   <!-- CHAT OUTPUT -->
   <div class="chat-area" id="chatArea"></div>
 
-  <!-- ACCOUNT BUTTON (stacks above search bar) -->
-  <div class="account-button-wrap center" id="accountButtonWrap">
-    <div class="account-button-inner">
-      <button class="account-button" id="accountButton" onclick="handleAccountButtonClick()">
-        <span class="account-button-icon">🚀</span>
-        <span class="account-button-text">Create an Account to Increase Your AI Rank</span>
-        <div class="account-avatar" id="accountAvatar"></div>
-      </button>
+  <!-- ACCOUNT MODAL (stacks above search bar) -->
+  <div class="account-modal-wrap center" id="accountModalWrap">
+    <div class="account-modal-inner">
+      <div class="account-modal" id="accountModal">
+        <div class="account-narrative">
+          <span class="account-narrative-icon">🔒</span>
+          <span class="account-narrative-text">Track your searches and increase your AI visibility over time</span>
+        </div>
+        <button class="account-cta-button" onclick="openLoginModal()">Sign In</button>
+        <div class="account-avatar" id="accountAvatar" onclick="handleAvatarClick()"></div>
+      </div>
       <div class="account-dropdown" id="accountDropdown">
         <div class="account-dropdown-item" onclick="viewHistory()">
           📜 Search History
@@ -1278,14 +1332,14 @@
   auth.onAuthStateChanged(user => {
     currentUser = user;
     if (user) {
-      showAccountButton(user);
+      showAccountModal(user);
       closeLoginModal();
       loadSearchHistory();
     } else {
-      // Don't hide button, just keep it in logged-out state
-      const accountButton = document.getElementById('accountButton');
-      if (accountButton) {
-        accountButton.classList.remove('logged-in');
+      // Don't hide modal, just keep it in logged-out state
+      const accountModal = document.getElementById('accountModal');
+      if (accountModal) {
+        accountModal.classList.remove('logged-in');
       }
     }
   });
@@ -1341,7 +1395,7 @@
 
     const hero = document.getElementById('hero');
     const searchWrap = document.getElementById('searchWrap');
-    const accountButtonWrap = document.getElementById('accountButtonWrap');
+    const accountModalWrap = document.getElementById('accountModalWrap');
     const hintText = document.getElementById('hintText');
     const footer = document.getElementById('footer');
     const heroBottom = document.getElementById('heroBottom');
@@ -1354,15 +1408,15 @@
     searchWrap.classList.add('bottom');
     document.body.appendChild(searchWrap);
 
-    // detach account button, fix to bottom (above search bar)
-    accountButtonWrap.classList.remove('center');
-    accountButtonWrap.classList.add('bottom');
-    document.body.appendChild(accountButtonWrap);
+    // detach account modal, fix to bottom (above search bar, no gap)
+    accountModalWrap.classList.remove('center');
+    accountModalWrap.classList.add('bottom');
+    document.body.appendChild(accountModalWrap);
 
-    // Show account button after first search (if not logged in)
+    // Show account modal after first search (if not logged in)
     if (!currentUser) {
       setTimeout(() => {
-        accountButtonWrap.classList.add('visible');
+        accountModalWrap.classList.add('visible');
       }, 800);
     }
 
@@ -1435,6 +1489,28 @@
     // Generate unique ID for collapsible
     const cardId = 'card_' + domain.replace(/\./g, '_') + '_' + Date.now();
 
+    // Format last indexed date
+    const lastIndexed = data.timestamp || data.crawledAt || Date.now();
+    const indexedDate = new Date(lastIndexed);
+    const now = new Date();
+    const diffMs = now - indexedDate;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    let lastIndexedText = '';
+    if (diffMins < 1) {
+      lastIndexedText = 'just now';
+    } else if (diffMins < 60) {
+      lastIndexedText = `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
+    } else if (diffHours < 24) {
+      lastIndexedText = `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    } else if (diffDays < 30) {
+      lastIndexedText = `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    } else {
+      lastIndexedText = indexedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
     // If collapsible, wrap details in expandable section
     if (isCollapsible) {
       return `
@@ -1468,6 +1544,7 @@
               <button class="card-btn" onclick="shareScore('${domain}', ${p.score})">↗ Share Score</button>
               ${secondButton}
             </div>
+            <div class="last-indexed">Last indexed: ${lastIndexedText}</div>
           </div>
         </div>`;
     }
@@ -1503,6 +1580,7 @@
           <button class="card-btn" onclick="shareScore('${domain}', ${p.score})">↗ Share Score</button>
           ${secondButton}
         </div>
+        <div class="last-indexed">Last indexed: ${lastIndexedText}</div>
       </div>`;
   }
 
@@ -2015,13 +2093,13 @@
     }
   }
 
-  function showAccountButton(user) {
-    const accountButtonWrap = document.getElementById('accountButtonWrap');
-    const accountButton = document.getElementById('accountButton');
+  function showAccountModal(user) {
+    const accountModalWrap = document.getElementById('accountModalWrap');
+    const accountModal = document.getElementById('accountModal');
     const accountAvatar = document.getElementById('accountAvatar');
     
-    accountButtonWrap.classList.add('visible');
-    accountButton.classList.add('logged-in');
+    accountModalWrap.classList.add('visible');
+    accountModal.classList.add('logged-in');
     
     if (user.photoURL) {
       accountAvatar.innerHTML = `<img src="${user.photoURL}" alt="${user.displayName || user.email}">`;
@@ -2031,29 +2109,24 @@
     }
   }
 
-  function hideAccountButton() {
-    const accountButtonWrap = document.getElementById('accountButtonWrap');
-    const accountButton = document.getElementById('accountButton');
-    accountButtonWrap.classList.remove('visible');
-    accountButton.classList.remove('logged-in');
+  function hideAccountModal() {
+    const accountModalWrap = document.getElementById('accountModalWrap');
+    const accountModal = document.getElementById('accountModal');
+    accountModalWrap.classList.remove('visible');
+    accountModal.classList.remove('logged-in');
     document.getElementById('accountDropdown').classList.remove('visible');
   }
 
-  function handleAccountButtonClick() {
-    if (currentUser) {
-      // Toggle dropdown if logged in
-      document.getElementById('accountDropdown').classList.toggle('visible');
-    } else {
-      // Open login modal if not logged in
-      openLoginModal();
-    }
+  function handleAvatarClick() {
+    // Toggle dropdown when avatar is clicked
+    document.getElementById('accountDropdown').classList.toggle('visible');
   }
 
   // Close dropdown when clicking outside
   document.addEventListener('click', (e) => {
-    const accountButtonWrap = document.getElementById('accountButtonWrap');
+    const accountModalWrap = document.getElementById('accountModalWrap');
     const dropdown = document.getElementById('accountDropdown');
-    if (accountButtonWrap && !accountButtonWrap.contains(e.target) && dropdown.classList.contains('visible')) {
+    if (accountModalWrap && !accountModalWrap.contains(e.target) && dropdown.classList.contains('visible')) {
       dropdown.classList.remove('visible');
     }
   });
