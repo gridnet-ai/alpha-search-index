@@ -1020,8 +1020,9 @@
   .account-modal {
     display: flex;
     align-items: center;
+    justify-content: center; /* Center content */
     gap: 16px;
-    padding: 16px 18px;
+    padding: 16px 18px 20px; /* Extra bottom padding for spacing from search bar */
     border-radius: 14px 14px 0 0; /* Rounded top, flat bottom to connect with search */
     background: var(--bg);
     box-shadow: var(--neu-raised);
@@ -1380,8 +1381,81 @@
     margin: 8px 0;
   }
 
+  /* Saved Search Term */
+  .slide-menu-saved-term {
+    padding: 12px 20px 0;
+    border-top: 1px solid rgba(90,95,122,0.06);
+  }
+  
+  .saved-term-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-tertiary);
+    margin-bottom: 6px;
+    font-family: 'DM Mono', monospace;
+  }
+  
+  .saved-term-value {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+    padding: 8px 0;
+    border-bottom: 1px solid transparent;
+    transition: all 0.2s;
+  }
+  
+  .saved-term-value:hover {
+    color: var(--accent-blue);
+    border-bottom-color: var(--accent-blue);
+  }
+  
+  .saved-term-details {
+    padding: 8px 0;
+    font-size: 11px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+  
+  .saved-term-details-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+  }
+  
+  /* Spacer to push resources to bottom */
+  .slide-menu-spacer {
+    flex: 1;
+    min-height: 20px;
+  }
+  
+  /* Resources - thin, compact, at bottom */
+  .slide-menu-resources {
+    padding: 12px 20px;
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-tertiary);
+    font-family: 'DM Mono', monospace;
+  }
+  
+  .resource-link {
+    color: var(--text-tertiary);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  
+  .resource-link:hover {
+    color: var(--accent-blue);
+  }
+  
+  .resource-sep {
+    margin: 0 8px;
+    opacity: 0.5;
+  }
+
   .slide-menu-footer {
-    margin-top: auto;
+    margin-top: 0;
     padding: 20px;
     border-top: 1px solid rgba(90,95,122,0.08);
   }
@@ -1427,10 +1501,11 @@
     }
 
     .account-modal {
-      padding: 12px 16px;
+      padding: 12px 16px 16px; /* Extra bottom padding for spacing from search bar */
       gap: 12px;
       flex-direction: row; /* Keep horizontal like desktop */
       align-items: center;
+      justify-content: center; /* Center content */
       border-radius: 14px 14px 0 0; /* Match desktop: rounded top, flat bottom */
       box-shadow: var(--neu-raised); /* Match desktop shadow */
     }
@@ -1496,8 +1571,17 @@
         <div class="slide-menu-stat-label">Searches</div>
       </div>
       <div class="slide-menu-stat">
-        <div class="slide-menu-stat-value" id="slideMenuResults">0</div>
-        <div class="slide-menu-stat-label">Results</div>
+        <div class="slide-menu-stat-value" id="slideMenuScore">--</div>
+        <div class="slide-menu-stat-label">Alpha Search Score</div>
+      </div>
+    </div>
+    
+    <!-- Saved Search Term (editable, expandable) -->
+    <div class="slide-menu-saved-term" id="slideMenuSavedTerm" style="display: none;">
+      <div class="saved-term-label">Your Search Term</div>
+      <div class="saved-term-value" id="savedTermValue" onclick="toggleSavedTermDetails()">--</div>
+      <div class="saved-term-details" id="savedTermDetails" style="display: none;">
+        <!-- Expandable summary data will go here -->
       </div>
     </div>
   </div>
@@ -1509,28 +1593,15 @@
     </div>
   </div>
 
-  <div class="slide-menu-divider"></div>
+  <div class="slide-menu-spacer"></div>
 
-  <div class="slide-menu-section">
-    <div class="slide-menu-section-title">Resources</div>
-    <a href="#" class="slide-menu-item">
-      <div class="slide-menu-item-content">
-        <div class="slide-menu-item-title">Documentation</div>
-        <div class="slide-menu-item-subtitle">Learn how to use Alpha Search</div>
-      </div>
-    </a>
-    <a href="#" class="slide-menu-item">
-      <div class="slide-menu-item-content">
-        <div class="slide-menu-item-title">API Access</div>
-        <div class="slide-menu-item-subtitle">Integrate with your apps</div>
-      </div>
-    </a>
-    <a href="#" class="slide-menu-item">
-      <div class="slide-menu-item-content">
-        <div class="slide-menu-item-title">Status</div>
-        <div class="slide-menu-item-subtitle">System status & uptime</div>
-      </div>
-    </a>
+  <!-- Resources at bottom - thin, compact, no boxes -->
+  <div class="slide-menu-resources">
+    <a href="#" class="resource-link">Docs</a>
+    <span class="resource-sep">·</span>
+    <a href="#" class="resource-link">API</a>
+    <span class="resource-sep">·</span>
+    <a href="#" class="resource-link">Status</a>
   </div>
 
   <div class="slide-menu-footer">
@@ -2886,22 +2957,49 @@
     overlay.classList.remove('visible');
     button.classList.remove('active');
   }
+  
+  function toggleSavedTermDetails() {
+    const details = document.getElementById('savedTermDetails');
+    const value = document.getElementById('savedTermValue');
+    const score = value.getAttribute('data-score');
+    const grade = value.getAttribute('data-grade');
+    
+    if (details.style.display === 'none' || !details.style.display) {
+      // Show details
+      details.innerHTML = `
+        <div class="saved-term-details-row">
+          <span>Score:</span>
+          <span style="font-weight: 600; color: var(--text-primary);">${score}/100</span>
+        </div>
+        <div class="saved-term-details-row">
+          <span>Grade:</span>
+          <span style="font-weight: 600; color: var(--text-primary);">${grade}</span>
+        </div>
+      `;
+      details.style.display = 'block';
+    } else {
+      // Hide details
+      details.style.display = 'none';
+    }
+  }
 
   function updateSlideMenu() {
     const user = currentUser;
     const slideMenuUser = document.getElementById('slideMenuUser');
     const slideMenuStats = document.getElementById('slideMenuStats');
+    const slideMenuSavedTerm = document.getElementById('slideMenuSavedTerm');
     const slideMenuAvatar = document.getElementById('slideMenuAvatar');
     const slideMenuUserName = document.getElementById('slideMenuUserName');
     const slideMenuUserEmail = document.getElementById('slideMenuUserEmail');
     const slideMenuSearches = document.getElementById('slideMenuSearches');
-    const slideMenuResults = document.getElementById('slideMenuResults');
+    const slideMenuScore = document.getElementById('slideMenuScore');
     const slideMenuAuthButton = document.getElementById('slideMenuAuthButton');
     
     if (user) {
       // Show user info
       slideMenuUser.style.display = 'flex';
       slideMenuStats.style.display = 'flex';
+      slideMenuSavedTerm.style.display = 'block';
       
       // Set avatar
       if (user.photoURL) {
@@ -2917,7 +3015,23 @@
       
       // Set stats
       slideMenuSearches.textContent = userSearchCount;
-      slideMenuResults.textContent = userResultsCount;
+      
+      // Calculate user's Alpha Search Score (average of their search results)
+      const userScore = searchHistory.length > 0 
+        ? Math.round(searchHistory.reduce((sum, s) => sum + (s.alphaScore || 0), 0) / searchHistory.length)
+        : '--';
+      slideMenuScore.textContent = userScore;
+      
+      // Set saved search term (most recent search)
+      const savedTermValue = document.getElementById('savedTermValue');
+      if (searchHistory.length > 0) {
+        const latestSearch = searchHistory[0];
+        savedTermValue.textContent = latestSearch.query;
+        savedTermValue.setAttribute('data-score', latestSearch.alphaScore);
+        savedTermValue.setAttribute('data-grade', latestSearch.grade);
+      } else {
+        savedTermValue.textContent = 'No searches yet';
+      }
       
       // Update auth button to sign out
       slideMenuAuthButton.innerHTML = `
@@ -2930,6 +3044,7 @@
       // Hide user info
       slideMenuUser.style.display = 'none';
       slideMenuStats.style.display = 'none';
+      slideMenuSavedTerm.style.display = 'none';
       
       // Update auth button to sign in
       slideMenuAuthButton.innerHTML = `
