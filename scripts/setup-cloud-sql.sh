@@ -39,6 +39,7 @@ gcloud sql instances create $INSTANCE_NAME \
   --storage-type=SSD \
   --storage-auto-increase \
   --backup-start-time=03:00 \
+  --retained-backups-count=7 \
   --maintenance-window-day=SUN \
   --maintenance-window-hour=4 \
   --no-assign-ip \

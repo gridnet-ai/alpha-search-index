@@ -10,8 +10,11 @@ set -e  # Exit on error
 
 PROJECT_ID="alpha-search-index"
 REGION="us-central1"
-INDEXER_URL="https://alpha-search-indexer-REPLACE_WITH_HASH-uc.a.run.app"
-SERVICE_ACCOUNT="169073379199-compute@developer.gserviceaccount.com"
+# IMPORTANT: Replace this with the actual Cloud Run URL from deploy-indexer.sh output
+INDEXER_URL="${INDEXER_URL:-https://alpha-search-indexer-REPLACE_WITH_HASH-uc.a.run.app}"
+# IMPORTANT: Verify this service account exists in your project
+# Run: gcloud iam service-accounts list --filter="email~compute@developer.gserviceaccount.com"
+SERVICE_ACCOUNT="${SERVICE_ACCOUNT:-169073379199-compute@developer.gserviceaccount.com}"
 
 echo "╔════════════════════════════════════════════════════════════╗"
 echo "║      CLOUD SCHEDULER SETUP FOR ALPHA SEARCH INDEX          ║"
