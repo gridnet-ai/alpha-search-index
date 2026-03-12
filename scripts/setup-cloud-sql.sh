@@ -27,15 +27,15 @@ echo ""
 echo "Step 1: Provisioning Cloud SQL PostgreSQL 15 instance..."
 echo "  Instance: $INSTANCE_NAME"
 echo "  Region: $REGION"
-echo "  Tier: db-n1-standard-2 (2 vCPU, 7.5 GB RAM)"
-echo "  Storage: 100 GB SSD (auto-increase enabled)"
+echo "  Tier: db-f1-micro (shared CPU, 0.6 GB RAM) - CHEAPEST"
+echo "  Storage: 10 GB SSD (auto-increase enabled)"
 echo ""
 
 gcloud sql instances create $INSTANCE_NAME \
   --database-version=POSTGRES_15 \
-  --tier=db-n1-standard-2 \
+  --tier=db-f1-micro \
   --region=$REGION \
-  --storage-size=100GB \
+  --storage-size=10GB \
   --storage-type=SSD \
   --storage-auto-increase \
   --backup-start-time=03:00 \
