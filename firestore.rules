@@ -35,5 +35,11 @@ service cloud.firestore {
       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
       allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
     }
+    
+    // System counters - read by anyone, write by anyone (for global counter)
+    match /system/{docId} {
+      allow read: if true;
+      allow write: if docId == 'aiRecordsCounter'; // Only the AI Records counter is writable
+    }
   }
 }

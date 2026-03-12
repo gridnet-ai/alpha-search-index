@@ -1654,25 +1654,57 @@
   // ── STATUS - AI RECORDS COUNTER ──
   const TARGET_AI_RECORDS = 30000000; // 30M AI Records (10M domains + 10M people + 10M products)
   const TARGET_DATE = new Date('2026-09-23'); // 1 week before Q4 2026 (Oct 1)
-  const START_DATE = new Date('2026-03-12'); // Today
+  const START_DATE = new Date('2026-03-12'); // March 12, 2026
   const START_COUNT = 2400000; // Starting at 2.4M AI Records
   
-  // Try to load saved count from localStorage, or use start count
-  let aiRecordsCount = parseFloat(localStorage.getItem('aiRecordsCount')) || START_COUNT;
-  let lastSaveTime = parseInt(localStorage.getItem('lastSaveTime')) || Date.now();
+  let aiRecordsCount = START_COUNT;
   
   // Calculate how much to increment per second to reach target by deadline
   const totalSeconds = (TARGET_DATE - START_DATE) / 1000;
   const recordsToAdd = TARGET_AI_RECORDS - START_COUNT;
   const incrementPerSecond = recordsToAdd / totalSeconds;
   
-  // Add records for time elapsed since last save
-  const secondsElapsed = (Date.now() - lastSaveTime) / 1000;
-  aiRecordsCount += incrementPerSecond * secondsElapsed;
+  // Try to load global counter from Firestore
+  async function loadGlobalCounter() {
+    try {
+      const counterDoc = await db.collection('system').doc('aiRecordsCounter').get();
+      
+      if (counterDoc.exists) {
+        const data = counterDoc.data();
+        aiRecordsCount = data.count || START_COUNT;
+        const lastUpdate = data.lastUpdate?.toDate?.() || new Date(START_DATE);
+        
+        // Calculate elapsed time and add records
+        const secondsElapsed = (Date.now() - lastUpdate.getTime()) / 1000;
+        aiRecordsCount += incrementPerSecond * secondsElapsed;
+        
+        // Don't exceed target
+        if (aiRecordsCount > TARGET_AI_RECORDS) {
+          aiRecordsCount = TARGET_AI_RECORDS;
+        }
+      } else {
+        // Initialize counter in Firestore
+        await db.collection('system').doc('aiRecordsCounter').set({
+          count: START_COUNT,
+          lastUpdate: firebase.firestore.FieldValue.serverTimestamp(),
+          startDate: new Date(START_DATE),
+          targetDate: new Date(TARGET_DATE),
+          targetCount: TARGET_AI_RECORDS
+        });
+      }
+    } catch (error) {
+      console.error('Error loading counter:', error);
+      // Fallback to calculated value based on time
+      const secondsElapsed = (Date.now() - new Date(START_DATE).getTime()) / 1000;
+      aiRecordsCount = START_COUNT + (incrementPerSecond * secondsElapsed);
+    }
+    
+    updateAIRecordsCounter();
+  }
   
   setTimeout(() => {
     document.getElementById('statusDot').className = 'status-dot live';
-    updateAIRecordsCounter();
+    loadGlobalCounter();
     
     // Update counter every second with calculated increment
     setInterval(() => {
@@ -1682,11 +1714,19 @@
         aiRecordsCount = TARGET_AI_RECORDS;
       }
       updateAIRecordsCounter();
-      
-      // Save to localStorage every update
-      localStorage.setItem('aiRecordsCount', aiRecordsCount.toString());
-      localStorage.setItem('lastSaveTime', Date.now().toString());
     }, 1000);
+    
+    // Save to Firestore every 10 seconds to avoid too many writes
+    setInterval(async () => {
+      try {
+        await db.collection('system').doc('aiRecordsCounter').update({
+          count: aiRecordsCount,
+          lastUpdate: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      } catch (error) {
+        console.error('Error saving counter:', error);
+      }
+    }, 10000);
   }, 1600);
 
   function updateAIRecordsCounter() {
