@@ -1630,9 +1630,12 @@
   let userResultsCount = 0;
 
   // Monitor auth state
-  auth.onAuthStateChanged(user => {
+  auth.onAuthStateChanged(async user => {
     currentUser = user;
     if (user) {
+      // Create or update user profile on login
+      await ensureUserProfile(user);
+      
       showAccountModal(user);
       closeLoginModal();
       loadSearchHistory();
@@ -1652,6 +1655,37 @@
       updateSlideMenu();
     }
   });
+  
+  // Ensure user profile exists in Firestore
+  async function ensureUserProfile(user) {
+    try {
+      const userRef = db.collection('users').doc(user.uid);
+      const userDoc = await userRef.get();
+      
+      if (!userDoc.exists) {
+        // Create new user profile
+        await userRef.set({
+          uid: user.uid,
+          email: user.email || null,
+          displayName: user.displayName || null,
+          photoURL: user.photoURL || null,
+          plan: 'free',
+          searchesThisMonth: 0,
+          totalSearches: 0,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          lastActiveAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+        console.log('User profile created:', user.uid);
+      } else {
+        // Update last active timestamp
+        await userRef.update({
+          lastActiveAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+      }
+    } catch (error) {
+      console.error('Error ensuring user profile:', error);
+    }
+  }
 
   // ── STATUS - AI RECORDS COUNTER ──
   const TARGET_AI_RECORDS = 30000000; // 30M AI Records (10M domains + 10M people + 10M products)
