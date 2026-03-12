@@ -1657,12 +1657,18 @@
   const START_DATE = new Date('2026-03-12'); // Today
   const START_COUNT = 2400000; // Starting at 2.4M AI Records
   
-  let aiRecordsCount = START_COUNT;
+  // Try to load saved count from localStorage, or use start count
+  let aiRecordsCount = parseFloat(localStorage.getItem('aiRecordsCount')) || START_COUNT;
+  let lastSaveTime = parseInt(localStorage.getItem('lastSaveTime')) || Date.now();
   
   // Calculate how much to increment per second to reach target by deadline
   const totalSeconds = (TARGET_DATE - START_DATE) / 1000;
   const recordsToAdd = TARGET_AI_RECORDS - START_COUNT;
   const incrementPerSecond = recordsToAdd / totalSeconds;
+  
+  // Add records for time elapsed since last save
+  const secondsElapsed = (Date.now() - lastSaveTime) / 1000;
+  aiRecordsCount += incrementPerSecond * secondsElapsed;
   
   setTimeout(() => {
     document.getElementById('statusDot').className = 'status-dot live';
@@ -1676,6 +1682,10 @@
         aiRecordsCount = TARGET_AI_RECORDS;
       }
       updateAIRecordsCounter();
+      
+      // Save to localStorage every update
+      localStorage.setItem('aiRecordsCount', aiRecordsCount.toString());
+      localStorage.setItem('lastSaveTime', Date.now().toString());
     }, 1000);
   }, 1600);
 
