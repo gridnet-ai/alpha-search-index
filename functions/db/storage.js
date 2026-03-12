@@ -11,7 +11,7 @@ const gcs = new Storage();
  * @returns {Promise<string>} - GCS path (gs://...)
  */
 async function saveRawCrawl(entity_type, entity_id, data) {
-  const bucket = process.env.GCS_RAW_CRAWLS_BUCKET || 'alpha-search-raw-crawls';
+  const bucket = process.env.GCS_RAW_CRAWLS_BUCKET || 'alpha-search-index-raw-crawls';
   
   // Create date-based path: YYYY/MM/DD
   const date = new Date().toISOString().split('T')[0].replace(/-/g, '/');
@@ -61,7 +61,7 @@ async function saveRawCrawl(entity_type, entity_id, data) {
  * @returns {Promise<string>} - GCS path
  */
 async function saveSnapshot(snapshot) {
-  const bucket = process.env.GCS_SNAPSHOTS_BUCKET || 'alpha-search-snapshots';
+  const bucket = process.env.GCS_SNAPSHOTS_BUCKET || 'alpha-search-index-snapshots';
   const date = new Date().toISOString().split('T')[0];
   const path = `snapshots/${date}.json`;
   
@@ -91,7 +91,7 @@ async function saveSnapshot(snapshot) {
  * @returns {Promise<string>} - GCS path
  */
 async function saveAnalytics(type, data) {
-  const bucket = process.env.GCS_ANALYTICS_BUCKET || 'alpha-search-analytics';
+  const bucket = process.env.GCS_ANALYTICS_BUCKET || 'alpha-search-index-analytics';
   const timestamp = new Date().toISOString().replace(/:/g, '-');
   const path = `analytics/${type}/${timestamp}.json`;
   

@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS ai_records (
 -- Indexes for ai_records
 CREATE INDEX IF NOT EXISTS idx_ai_records_entity_type ON ai_records(entity_type);
 CREATE INDEX IF NOT EXISTS idx_ai_records_entity_id ON ai_records(entity_id);
-CREATE INDEX IF NOT EXISTS idx_ai_records_cache ON ai_records(cache_valid_until) WHERE cache_valid_until > NOW();
+CREATE INDEX IF NOT EXISTS idx_ai_records_cache ON ai_records(cache_valid_until);
 CREATE INDEX IF NOT EXISTS idx_ai_records_score ON ai_records(alpha_score DESC NULLS LAST);
 CREATE INDEX IF NOT EXISTS idx_ai_records_search_vector ON ai_records USING gin(search_vector);
 

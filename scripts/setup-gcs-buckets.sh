@@ -8,12 +8,19 @@
 
 set -e  # Exit on error
 
-PROJECT_ID="alpha-search-index"
+PROJECT_ID=$(gcloud config get-value project)
 REGION="us-central1"
+
+# Use project-specific bucket names to ensure global uniqueness
+RAW_CRAWLS_BUCKET="${PROJECT_ID}-raw-crawls"
+SNAPSHOTS_BUCKET="${PROJECT_ID}-snapshots"
+ANALYTICS_BUCKET="${PROJECT_ID}-analytics"
 
 echo "╔════════════════════════════════════════════════════════════╗"
 echo "║       CLOUD STORAGE SETUP FOR ALPHA SEARCH INDEX           ║"
 echo "╚════════════════════════════════════════════════════════════╝"
+echo ""
+echo "Project: $PROJECT_ID"
 echo ""
 
 # ============================================================================
@@ -24,16 +31,16 @@ echo "Creating Cloud Storage buckets..."
 echo ""
 
 # Bucket 1: Raw Crawls (90-day retention)
-echo "1. alpha-search-raw-crawls (90-day retention)"
-gsutil mb -p $PROJECT_ID -l $REGION gs://alpha-search-raw-crawls
+echo "1. $RAW_CRAWLS_BUCKET (90-day retention)"
+gsutil mb -p $PROJECT_ID -l $REGION gs://$RAW_CRAWLS_BUCKET
 
 # Bucket 2: Snapshots (30-day retention)
-echo "2. alpha-search-snapshots (30-day retention)"
-gsutil mb -p $PROJECT_ID -l $REGION gs://alpha-search-snapshots
+echo "2. $SNAPSHOTS_BUCKET (30-day retention)"
+gsutil mb -p $PROJECT_ID -l $REGION gs://$SNAPSHOTS_BUCKET
 
 # Bucket 3: Analytics (indefinite retention)
-echo "3. alpha-search-analytics (indefinite retention)"
-gsutil mb -p $PROJECT_ID -l $REGION gs://alpha-search-analytics
+echo "3. $ANALYTICS_BUCKET (indefinite retention)"
+gsutil mb -p $PROJECT_ID -l $REGION gs://$ANALYTICS_BUCKET
 
 echo ""
 echo "✅ All buckets created"
@@ -60,7 +67,7 @@ cat > /tmp/lifecycle-raw-crawls.json <<EOF
 }
 EOF
 
-gsutil lifecycle set /tmp/lifecycle-raw-crawls.json gs://alpha-search-raw-crawls
+gsutil lifecycle set /tmp/lifecycle-raw-crawls.json gs://$RAW_CRAWLS_BUCKET
 echo "✅ Raw crawls: 90-day auto-delete"
 
 # Policy for snapshots: Delete after 30 days
@@ -77,7 +84,7 @@ cat > /tmp/lifecycle-snapshots.json <<EOF
 }
 EOF
 
-gsutil lifecycle set /tmp/lifecycle-snapshots.json gs://alpha-search-snapshots
+gsutil lifecycle set /tmp/lifecycle-snapshots.json gs://$SNAPSHOTS_BUCKET
 echo "✅ Snapshots: 30-day auto-delete"
 
 # Analytics: No lifecycle policy (indefinite retention)
@@ -94,30 +101,32 @@ echo ""
 # Grant Cloud Functions access
 gsutil iam ch \
   serviceAccount:$PROJECT_ID@appspot.gserviceaccount.com:roles/storage.objectAdmin \
-  gs://alpha-search-raw-crawls
+  gs://$RAW_CRAWLS_BUCKET
 
 gsutil iam ch \
   serviceAccount:$PROJECT_ID@appspot.gserviceaccount.com:roles/storage.objectAdmin \
-  gs://alpha-search-snapshots
+  gs://$SNAPSHOTS_BUCKET
 
 gsutil iam ch \
   serviceAccount:$PROJECT_ID@appspot.gserviceaccount.com:roles/storage.objectAdmin \
-  gs://alpha-search-analytics
+  gs://$ANALYTICS_BUCKET
 
 echo "✅ Cloud Functions access granted"
 
 # Grant Cloud Run access (for indexer service)
-gsutil iam ch \
-  serviceAccount:169073379199-compute@developer.gserviceaccount.com:roles/storage.objectAdmin \
-  gs://alpha-search-raw-crawls
+COMPUTE_SA=$(gcloud iam service-accounts list --filter="email~compute@developer.gserviceaccount.com" --format="value(email)" | head -n 1)
 
 gsutil iam ch \
-  serviceAccount:169073379199-compute@developer.gserviceaccount.com:roles/storage.objectAdmin \
-  gs://alpha-search-snapshots
+  serviceAccount:$COMPUTE_SA:roles/storage.objectAdmin \
+  gs://$RAW_CRAWLS_BUCKET
 
 gsutil iam ch \
-  serviceAccount:169073379199-compute@developer.gserviceaccount.com:roles/storage.objectAdmin \
-  gs://alpha-search-analytics
+  serviceAccount:$COMPUTE_SA:roles/storage.objectAdmin \
+  gs://$SNAPSHOTS_BUCKET
+
+gsutil iam ch \
+  serviceAccount:$COMPUTE_SA:roles/storage.objectAdmin \
+  gs://$ANALYTICS_BUCKET
 
 echo "✅ Cloud Run access granted"
 echo ""
@@ -131,11 +140,16 @@ echo "║                    SETUP COMPLETE                          ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
 echo "Buckets created:"
-echo "  1. gs://alpha-search-raw-crawls (90-day retention)"
-echo "  2. gs://alpha-search-snapshots (30-day retention)"
-echo "  3. gs://alpha-search-analytics (indefinite)"
+echo "  1. gs://$RAW_CRAWLS_BUCKET (90-day retention)"
+echo "  2. gs://$SNAPSHOTS_BUCKET (30-day retention)"
+echo "  3. gs://$ANALYTICS_BUCKET (indefinite)"
+echo ""
+echo "Environment variables to use:"
+echo "  GCS_RAW_CRAWLS_BUCKET=$RAW_CRAWLS_BUCKET"
+echo "  GCS_SNAPSHOTS_BUCKET=$SNAPSHOTS_BUCKET"
+echo "  GCS_ANALYTICS_BUCKET=$ANALYTICS_BUCKET"
 echo ""
 echo "Next steps:"
-echo "1. Update environment variables with bucket names"
-echo "2. Test storage access: gsutil ls gs://alpha-search-raw-crawls"
+echo "1. Update Firebase Functions config with these bucket names"
+echo "2. Test storage access: gsutil ls gs://$RAW_CRAWLS_BUCKET"
 echo ""
