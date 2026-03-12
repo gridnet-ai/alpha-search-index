@@ -2621,25 +2621,26 @@
     
     try {
       const searchData = {
-        userId: currentUser.uid,
         query: query,
-        type: type, // 'url' or 'name'
-        result: result,
+        entityType: type === 'url' ? 'domain' : 'person',
+        alphaScore: result?.score || result?.avgScore || 0,
+        grade: result?.grade || 'Unknown',
+        cacheHit: result?.cached || false,
+        serpApiUsed: type === 'name',
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
       };
       
-      await db.collection('searchHistory').add(searchData);
+      // Save to users/{userId}/searches subcollection
+      const docRef = await db.collection('users').doc(currentUser.uid)
+        .collection('searches').add(searchData);
+      
+      // Add to local array with the doc ID
+      searchData.id = docRef.id;
+      searchData.type = type; // Keep for local use
       searchHistory.unshift(searchData);
       
-      // Update stats
-      userSearchCount++;
-      if (type === 'name' && result && result.pages) {
-        userResultsCount += result.pages.length;
-      } else if (type === 'url') {
-        userResultsCount++;
-      }
-      
       // Update slide menu
+      renderSearchHistory();
       updateSlideMenu();
     } catch (error) {
       console.error('Error saving search:', error);
@@ -2650,33 +2651,73 @@
     if (!currentUser) return;
     
     try {
-      const snapshot = await db.collection('searchHistory')
-        .where('userId', '==', currentUser.uid)
+      const snapshot = await db.collection('users').doc(currentUser.uid)
+        .collection('searches')
         .orderBy('timestamp', 'desc')
         .limit(50)
         .get();
       
-      searchHistory = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      searchHistory = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          query: data.query,
+          type: data.entityType === 'domain' ? 'url' : 'name',
+          entityType: data.entityType,
+          alphaScore: data.alphaScore,
+          grade: data.grade,
+          timestamp: data.timestamp,
+          cacheHit: data.cacheHit,
+          serpApiUsed: data.serpApiUsed
+        };
+      });
       
       // Update user stats
       userSearchCount = searchHistory.length;
-      userResultsCount = searchHistory.reduce((sum, search) => {
-        if (search.type === 'name' && search.result && search.result.pages) {
-          return sum + search.result.pages.length;
-        } else if (search.type === 'url') {
-          return sum + 1;
-        }
-        return sum;
-      }, 0);
+      userResultsCount = searchHistory.length;
       
       // Update slide menu with history
       updateSlideMenu();
       renderSearchHistory();
     } catch (error) {
       console.error('Error loading history:', error);
+      // If orderBy fails (no index), try without ordering
+      try {
+        const snapshot = await db.collection('users').doc(currentUser.uid)
+          .collection('searches')
+          .limit(50)
+          .get();
+        
+        searchHistory = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            query: data.query,
+            type: data.entityType === 'domain' ? 'url' : 'name',
+            entityType: data.entityType,
+            alphaScore: data.alphaScore,
+            grade: data.grade,
+            timestamp: data.timestamp,
+            cacheHit: data.cacheHit,
+            serpApiUsed: data.serpApiUsed
+          };
+        });
+        
+        // Sort by timestamp locally
+        searchHistory.sort((a, b) => {
+          const timeA = a.timestamp?.toDate?.() || new Date(0);
+          const timeB = b.timestamp?.toDate?.() || new Date(0);
+          return timeB - timeA;
+        });
+        
+        userSearchCount = searchHistory.length;
+        userResultsCount = searchHistory.length;
+        
+        updateSlideMenu();
+        renderSearchHistory();
+      } catch (fallbackError) {
+        console.error('Fallback load also failed:', fallbackError);
+      }
     }
   }
 
