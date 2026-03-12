@@ -629,6 +629,9 @@
 
     .search-box {
       padding: 4px 4px 4px 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1), 
+                  inset 2px 2px 4px rgba(0,0,0,0.05), 
+                  inset -2px -2px 4px rgba(255,255,255,0.9); /* Stronger shadow to appear on top */
     }
 
     .search-input {
@@ -1413,7 +1416,7 @@
     
     .account-modal-wrap.center {
       width: calc(100% - 32px);
-      margin-bottom: 12px; /* Add gap between account modal and search bar */
+      margin-bottom: 8px; /* Reduced gap for slight overlap effect */
     }
 
     .account-modal-wrap.bottom {
@@ -1430,7 +1433,9 @@
       gap: 12px;
       flex-direction: row; /* Keep horizontal like desktop */
       align-items: center;
-      border-radius: 14px 14px 0 0; /* Match desktop */
+      border-radius: 14px; /* Fully rounded to appear behind search bar */
+      box-shadow: inset 2px 2px 4px rgba(0,0,0,0.05), 
+                  inset -2px -2px 4px rgba(255,255,255,0.9); /* Inset shadow to appear recessed */
     }
 
     .account-narrative-text {
