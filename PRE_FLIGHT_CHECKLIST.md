@@ -136,9 +136,30 @@ bash scripts/setup-gcs-buckets.sh
 
 ### Execute
 
+**⚠️ ENVIRONMENT-SPECIFIC COMMANDS:**
+
+**Option A: Google Cloud Shell (RECOMMENDED)**
 ```bash
-cd C:\alpha-search-index
+cd ~/alpha-search-index
 export CLOUD_SQL_PASSWORD=$(gcloud secrets versions access latest --secret=alpha-search-db-password)
+node scripts/migrate-firestore-to-sql.js
+```
+
+**Option B: Linux/Mac with screen/tmux**
+```bash
+screen -S migration
+# or: tmux new -s migration
+
+cd /path/to/alpha-search-index  # Use your actual repo path
+export CLOUD_SQL_PASSWORD=$(gcloud secrets versions access latest --secret=alpha-search-db-password)
+node scripts/migrate-firestore-to-sql.js
+```
+
+**Option C: Windows PowerShell**
+```powershell
+# Keep PowerShell window open, or use Google Cloud Shell instead
+cd C:\alpha-search-index
+$env:CLOUD_SQL_PASSWORD = gcloud secrets versions access latest --secret=alpha-search-db-password
 node scripts/migrate-firestore-to-sql.js
 ```
 
@@ -254,6 +275,16 @@ bash scripts/deploy-indexer.sh
 ### Execute Cloud Scheduler Setup
 
 ```bash
+# Use EXACT service account from pre-flight verification
+# DO NOT GUESS — a typo causes silent 403s on all scheduled jobs
+
+export INDEXER_URL="https://alpha-search-indexer-XXXXX-uc.a.run.app"  # From deploy-indexer.sh output
+export SERVICE_ACCOUNT="169073379199-compute@developer.gserviceaccount.com"  # From pre-flight check
+
+# Verify variables before running
+echo "Indexer URL: $INDEXER_URL"
+echo "Service Account: $SERVICE_ACCOUNT"
+
 bash scripts/setup-cloud-scheduler.sh
 ```
 
@@ -296,7 +327,7 @@ bash scripts/setup-cloud-scheduler.sh
 
 ### Monitor Discrepancies (1 Week Minimum, 10,000+ Queries)
 
-- [ ] **Daily Discrepancy Check:**
+- [ ] **Daily Discrepancy Check (Linux/Mac/Cloud Shell):**
   ```bash
   gcloud logging read 'jsonPayload.message=~"Score mismatch"' \
     --project=alpha-search-index \
@@ -304,13 +335,29 @@ bash scripts/setup-cloud-scheduler.sh
     --limit=50
   ```
 
-- [ ] **Weekly Discrepancy Rate:**
+- [ ] **Daily Discrepancy Check (Windows PowerShell):**
+  ```powershell
+  gcloud logging read "jsonPayload.message=~\`"Score mismatch\`"" `
+    --project=alpha-search-index `
+    --freshness=24h `
+    --limit=50
+  ```
+
+- [ ] **Weekly Discrepancy Rate (Linux/Mac/Cloud Shell):**
   ```bash
   gcloud logging read 'jsonPayload.message=~"Score mismatch"' \
     --project=alpha-search-index \
     --freshness=7d \
     --limit=500 \
     --format=json | jq length
+  ```
+
+- [ ] **Weekly Discrepancy Rate (Windows PowerShell):**
+  ```powershell
+  gcloud logging read "jsonPayload.message=~\`"Score mismatch\`"" `
+    --project=alpha-search-index `
+    --freshness=7d `
+    --format=json | ConvertFrom-Json | Measure-Object | Select-Object -ExpandProperty Count
   ```
   **Target:** < 10 mismatches across 10,000+ queries (< 0.1% discrepancy rate)
 
@@ -338,59 +385,78 @@ bash scripts/setup-cloud-scheduler.sh
 
 ### Execute
 
-**Modify `functions/index.js`:**
+**Cutover Sequence:**
 
-1. In `handleCheck` function, remove Firestore write:
-   ```javascript
-   // Comment out or remove:
-   // await docRef.set(firestoreData, { merge: true });
-   ```
+1. **Modify `functions/index.js`:**
+   - In `handleCheck`, comment out Firestore write:
+     ```javascript
+     // await docRef.set(firestoreData, { merge: true });
+     ```
+   - Replace `dualReadDomain` with direct Cloud SQL read:
+     ```javascript
+     const cachedResult = await queryIndex('domain', domain);
+     ```
 
-2. In `handleCheck` function, replace `dualReadDomain` with direct Cloud SQL read:
-   ```javascript
-   // Replace:
-   // const cachedResult = await dualReadDomain(domain);
-   // With:
-   const cachedResult = await queryIndex('domain', domain);
-   ```
-
-3. Deploy updated Cloud Functions:
+2. **Deploy Cloud Functions:**
    ```bash
    firebase deploy --only functions
+   ```
+
+3. **Verify Cloud SQL is serving live traffic:**
+   ```bash
+   curl -X POST https://us-central1-alpha-search-index.cloudfunctions.net/apiHandler/check \
+     -H "Content-Type: application/json" \
+     -d '{"url": "example.com"}'
+   
+   # Check logs for SQL queries (not Firestore reads)
+   gcloud logging read 'resource.type=cloud_function AND textPayload=~"Cloud SQL"' \
+     --limit=10 \
+     --freshness=5m
+   ```
+
+4. **Final discrepancy check (should be zero):**
+   ```bash
+   gcloud logging read 'jsonPayload.message=~"Score mismatch"' \
+     --project=alpha-search-index \
+     --freshness=1h \
+     --limit=50
+   ```
+   **Expected:** Zero results (no new discrepancies after cutover)
+
+5. **Update Firestore rules to read-only:**
+   ```javascript
+   // In firestore.rules
+   match /index/{domain} {
+     allow read: if true;
+     allow write: if false;  // Disable writes
+   }
+   ```
+
+6. **Deploy Firestore rules:**
+   ```bash
+   firebase deploy --only firestore:rules
    ```
 
 ### Post-Flight Verification
 
 - [ ] **Verify Cloud SQL is Primary:**
-  Test a domain search and check logs:
-  ```bash
-  curl -X POST https://us-central1-alpha-search-index.cloudfunctions.net/apiHandler/check \
-    -H "Content-Type: application/json" \
-    -d '{"url": "https://example.com"}'
-  ```
-  Check logs for SQL queries, no Firestore reads.
+  - ✅ Test domain crawl returns results from Cloud SQL
+  - ✅ Logs show SQL queries, not Firestore reads
+  - ✅ Zero discrepancies in the first hour post-cutover
 
-- [ ] **Monitor Error Rates:**
+- [ ] **Monitor Error Rates (24 hours):**
   ```bash
   gcloud logging read 'resource.type=cloud_function AND severity>=ERROR' \
     --project=alpha-search-index \
     --freshness=1h \
     --limit=50
   ```
-  Expected: No SQL connection errors or query failures.
+  Expected: No SQL connection errors or query failures
 
-- [ ] **Update Firestore Security Rules:**
-  In `firestore.rules`, change `index` collection to read-only:
-  ```javascript
-  match /index/{domain} {
-    allow read: if true;
-    allow write: if false; // Disable all writes
-  }
-  ```
-  Deploy:
-  ```bash
-  firebase deploy --only firestore:rules
-  ```
+- [ ] **Verify Response Times:**
+  - ✅ API response times within acceptable range
+  - ✅ No timeout errors from Cloud SQL
+  - ✅ Connection pool is stable
 
 ---
 

@@ -11,11 +11,23 @@
 gcloud config get-value project
 # Expected: alpha-search-index
 
-# 2. Verify service account email
-gcloud iam service-accounts list --filter="email~compute@developer.gserviceaccount.com" --format="value(email)"
-# Copy this output — you'll need it for Step 4
+# 2. Verify setup-cloud-sql.sh has all required flags
+grep -n "retained-backups\|no-assign-ip\|network=" scripts/setup-cloud-sql.sh
+# Expected: All three flags present (lines 42, 45, 46)
 
-# 3. Enable required APIs
+# 3. Verify service account email and SAVE IT
+gcloud iam service-accounts list \
+  --filter="email~compute@developer.gserviceaccount.com" \
+  --format="value(email)"
+# Copy this EXACT output — you'll need it for Step 4b
+# Example: 169073379199-compute@developer.gserviceaccount.com
+
+# 4. Verify Firestore score field name
+# Open Firebase Console → Firestore → index collection
+# Open 2-3 documents and confirm field is "alphaRankScore" or "score"
+# If different, update line 90 in scripts/migrate-firestore-to-sql.js
+
+# 5. Enable required APIs
 gcloud services enable \
   sqladmin.googleapis.com \
   secretmanager.googleapis.com \
@@ -72,14 +84,31 @@ gsutil lifecycle get gs://alpha-search-raw-crawls | grep age
 2. Open 2-3 documents and verify the score field is named `alphaRankScore` or `score`
 3. If different, update line 90 in `scripts/migrate-firestore-to-sql.js`
 
-**Run in screen/tmux to prevent disconnection:**
+**⚠️ ENVIRONMENT-SPECIFIC COMMANDS:**
 
+**Option A: Google Cloud Shell (RECOMMENDED for 60-min job)**
+```bash
+# Cloud Shell has built-in persistence and auto-reconnect
+cd ~/alpha-search-index
+export CLOUD_SQL_PASSWORD=$(gcloud secrets versions access latest --secret=alpha-search-db-password)
+node scripts/migrate-firestore-to-sql.js
+```
+
+**Option B: Linux/Mac with screen/tmux**
 ```bash
 screen -S migration
 # or: tmux new -s migration
 
-cd C:\alpha-search-index
+cd /path/to/alpha-search-index  # Use your actual repo path
 export CLOUD_SQL_PASSWORD=$(gcloud secrets versions access latest --secret=alpha-search-db-password)
+node scripts/migrate-firestore-to-sql.js
+```
+
+**Option C: Windows PowerShell (no screen/tmux)**
+```powershell
+# Keep PowerShell window open for 60 minutes, or use Google Cloud Shell instead
+cd C:\alpha-search-index
+$env:CLOUD_SQL_PASSWORD = gcloud secrets versions access latest --secret=alpha-search-db-password
 node scripts/migrate-firestore-to-sql.js
 ```
 
@@ -115,9 +144,15 @@ Service URL: https://alpha-search-indexer-XXXXX-uc.a.run.app
 ### 4b. Setup Cloud Scheduler
 
 ```bash
-# Set environment variables (replace with your actual values)
-export INDEXER_URL="https://alpha-search-indexer-XXXXX-uc.a.run.app"
-export SERVICE_ACCOUNT="YOUR_SERVICE_ACCOUNT@developer.gserviceaccount.com"
+# Set environment variables with EXACT values from pre-flight checks
+# DO NOT GUESS the service account — use the exact output from pre-flight step 3
+
+export INDEXER_URL="https://alpha-search-indexer-XXXXX-uc.a.run.app"  # From deploy-indexer.sh output
+export SERVICE_ACCOUNT="169073379199-compute@developer.gserviceaccount.com"  # From pre-flight step 3
+
+# Verify variables are set correctly
+echo "Indexer URL: $INDEXER_URL"
+echo "Service Account: $SERVICE_ACCOUNT"
 
 # Create scheduler jobs
 bash scripts/setup-cloud-scheduler.sh
@@ -140,7 +175,7 @@ gcloud scheduler jobs run reindex-domains --location=us-central1
 
 **No action required** — dual-read is already enabled in `functions/index.js`.
 
-**Monitor daily:**
+**Monitor daily (Linux/Mac/Cloud Shell):**
 ```bash
 gcloud logging read 'jsonPayload.message=~"Score mismatch"' \
   --project=alpha-search-index \
@@ -148,12 +183,28 @@ gcloud logging read 'jsonPayload.message=~"Score mismatch"' \
   --limit=50
 ```
 
-**Weekly check:**
+**Monitor daily (Windows PowerShell):**
+```powershell
+gcloud logging read "jsonPayload.message=~\`"Score mismatch\`"" `
+  --project=alpha-search-index `
+  --freshness=24h `
+  --limit=50
+```
+
+**Weekly check (Linux/Mac/Cloud Shell):**
 ```bash
 gcloud logging read 'jsonPayload.message=~"Score mismatch"' \
   --project=alpha-search-index \
   --freshness=7d \
   --format=json | jq length
+```
+
+**Weekly check (Windows PowerShell):**
+```powershell
+gcloud logging read "jsonPayload.message=~\`"Score mismatch\`"" `
+  --project=alpha-search-index `
+  --freshness=7d `
+  --format=json | ConvertFrom-Json | Measure-Object | Select-Object -ExpandProperty Count
 ```
 
 **Target:** < 10 mismatches across 10,000+ queries (< 0.1% discrepancy rate)
@@ -167,24 +218,53 @@ gcloud logging read 'jsonPayload.message=~"Score mismatch"' \
 - ✅ Query volume: ≥ 10,000 queries
 - ✅ Discrepancy rate: < 0.1%
 
-**Modify `functions/index.js`:**
+**Cutover Sequence:**
 
-1. In `handleCheck`, comment out Firestore write:
-   ```javascript
-   // await docRef.set(firestoreData, { merge: true });
-   ```
+1. **Modify `functions/index.js`:**
+   - In `handleCheck`, comment out Firestore write:
+     ```javascript
+     // await docRef.set(firestoreData, { merge: true });
+     ```
+   - Replace `dualReadDomain` with direct Cloud SQL read:
+     ```javascript
+     const cachedResult = await queryIndex('domain', domain);
+     ```
 
-2. Replace `dualReadDomain` with direct Cloud SQL read:
-   ```javascript
-   const cachedResult = await queryIndex('domain', domain);
-   ```
-
-3. Deploy:
+2. **Deploy Cloud Functions:**
    ```bash
    firebase deploy --only functions
    ```
 
-4. Update Firestore rules to read-only:
+3. **Verify Cloud SQL is serving live traffic:**
+   ```bash
+   # Test a fresh domain crawl
+   curl -X POST https://us-central1-alpha-search-index.cloudfunctions.net/apiHandler/check \
+     -H "Content-Type: application/json" \
+     -d '{"url": "example.com"}'
+   
+   # Check logs for SQL queries (not Firestore reads)
+   gcloud logging read 'resource.type=cloud_function AND textPayload=~"Cloud SQL"' \
+     --limit=10 \
+     --freshness=5m
+   ```
+
+4. **Final discrepancy check (should be zero):**
+   ```bash
+   # Linux/Mac/Cloud Shell
+   gcloud logging read 'jsonPayload.message=~"Score mismatch"' \
+     --project=alpha-search-index \
+     --freshness=1h \
+     --limit=50
+   
+   # Windows PowerShell
+   gcloud logging read "jsonPayload.message=~\`"Score mismatch\`"" `
+     --project=alpha-search-index `
+     --freshness=1h `
+     --limit=50
+   ```
+   **Expected:** Zero results (no new discrepancies after cutover)
+
+5. **Update Firestore rules to read-only:**
    ```javascript
    // In firestore.rules
    match /index/{domain} {
@@ -193,10 +273,15 @@ gcloud logging read 'jsonPayload.message=~"Score mismatch"' \
    }
    ```
 
-5. Deploy rules:
+6. **Deploy Firestore rules:**
    ```bash
    firebase deploy --only firestore:rules
    ```
+
+7. **Monitor for 24 hours post-cutover:**
+   - Check error rates haven't increased
+   - Verify response times are acceptable
+   - Confirm no SQL connection errors
 
 ---
 
