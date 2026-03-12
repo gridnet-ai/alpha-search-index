@@ -1688,7 +1688,13 @@
     } else {
       formatted = Math.floor(aiRecordsCount).toString();
     }
-    document.getElementById('statusText').textContent = `${formatted} AI Records`;
+    
+    // Format increment per second
+    const incrementFormatted = incrementPerSecond >= 1000 
+      ? (incrementPerSecond / 1000).toFixed(1) + 'K'
+      : Math.floor(incrementPerSecond).toFixed(0);
+    
+    document.getElementById('statusText').textContent = `${formatted} AI Records · +${incrementFormatted}/s`;
   }
 
   // ── INITIALIZE ACCOUNT NARRATIVE ──
