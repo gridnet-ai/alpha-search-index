@@ -1155,6 +1155,264 @@
     border-top: 1px solid rgba(90,95,122,0.08);
   }
 
+  /* ── SLIDE-OUT MENU ── */
+  .menu-button {
+    position: fixed;
+    top: 28px;
+    left: 24px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--bg);
+    box-shadow: var(--neu-raised);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 25;
+    transition: all 0.2s;
+  }
+
+  .menu-button:hover {
+    transform: scale(1.05);
+  }
+
+  .menu-icon {
+    width: 20px;
+    height: 14px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .menu-icon span {
+    width: 100%;
+    height: 2px;
+    background: var(--text-primary);
+    border-radius: 2px;
+    transition: all 0.3s;
+  }
+
+  .menu-button.active .menu-icon span:nth-child(1) {
+    transform: rotate(45deg) translate(5px, 5px);
+  }
+
+  .menu-button.active .menu-icon span:nth-child(2) {
+    opacity: 0;
+  }
+
+  .menu-button.active .menu-icon span:nth-child(3) {
+    transform: rotate(-45deg) translate(5px, -5px);
+  }
+
+  .slide-menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(26, 28, 46, 0.4);
+    backdrop-filter: blur(4px);
+    z-index: 15;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+
+  .slide-menu-overlay.visible {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .slide-menu {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 320px;
+    background: var(--bg);
+    box-shadow: 6px 0 20px rgba(26, 28, 46, 0.15);
+    z-index: 20;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .slide-menu.visible {
+    transform: translateX(0);
+  }
+
+  .slide-menu-header {
+    padding: 24px 20px;
+    border-bottom: 1px solid rgba(90,95,122,0.08);
+  }
+
+  .slide-menu-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .slide-menu-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: var(--bg);
+    box-shadow: var(--neu-raised);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--accent-blue);
+    overflow: hidden;
+  }
+
+  .slide-menu-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .slide-menu-user-info {
+    flex: 1;
+  }
+
+  .slide-menu-user-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+  }
+
+  .slide-menu-user-email {
+    font-size: 12px;
+    color: var(--text-tertiary);
+  }
+
+  .slide-menu-stats {
+    display: flex;
+    gap: 16px;
+  }
+
+  .slide-menu-stat {
+    flex: 1;
+    padding: 12px;
+    border-radius: 10px;
+    background: var(--bg);
+    box-shadow: var(--neu-inset);
+    text-align: center;
+  }
+
+  .slide-menu-stat-value {
+    font-size: 18px;
+    font-weight: 600;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+  }
+
+  .slide-menu-stat-label {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .slide-menu-section {
+    padding: 20px;
+  }
+
+  .slide-menu-section-title {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 12px;
+  }
+
+  .slide-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: var(--bg);
+    box-shadow: var(--neu-flat);
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    color: var(--text-primary);
+  }
+
+  .slide-menu-item:hover {
+    box-shadow: var(--neu-raised);
+    transform: translateX(2px);
+  }
+
+  .slide-menu-item-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .slide-menu-item-content {
+    flex: 1;
+  }
+
+  .slide-menu-item-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+  }
+
+  .slide-menu-item-subtitle {
+    font-size: 11px;
+    color: var(--text-tertiary);
+  }
+
+  .slide-menu-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--shadow-dark), transparent);
+    opacity: 0.3;
+    margin: 16px 0;
+  }
+
+  .slide-menu-footer {
+    margin-top: auto;
+    padding: 20px;
+    border-top: 1px solid rgba(90,95,122,0.08);
+  }
+
+  @media (max-width: 768px) {
+    .menu-button {
+      top: 16px;
+      left: 16px;
+      width: 36px;
+      height: 36px;
+    }
+
+    .slide-menu {
+      width: 280px;
+    }
+
+    .slide-menu-header {
+      padding: 20px 16px;
+    }
+
+    .slide-menu-section {
+      padding: 16px;
+    }
+  }
+
   @media (max-width: 768px) {
     .account-modal-wrap.center {
       width: calc(100% - 32px);
@@ -1189,6 +1447,89 @@
 </style>
 </head>
 <body>
+
+<!-- MENU BUTTON -->
+<button class="menu-button" id="menuButton" onclick="toggleSlideMenu()">
+  <div class="menu-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</button>
+
+<!-- SLIDE-OUT MENU -->
+<div class="slide-menu-overlay" id="slideMenuOverlay" onclick="closeSlideMenu()"></div>
+<div class="slide-menu" id="slideMenu">
+  <div class="slide-menu-header">
+    <div class="slide-menu-user" id="slideMenuUser" style="display: none;">
+      <div class="slide-menu-avatar" id="slideMenuAvatar"></div>
+      <div class="slide-menu-user-info">
+        <div class="slide-menu-user-name" id="slideMenuUserName">Guest</div>
+        <div class="slide-menu-user-email" id="slideMenuUserEmail"></div>
+      </div>
+    </div>
+    <div class="slide-menu-stats" id="slideMenuStats" style="display: none;">
+      <div class="slide-menu-stat">
+        <div class="slide-menu-stat-value" id="slideMenuSearches">0</div>
+        <div class="slide-menu-stat-label">Searches</div>
+      </div>
+      <div class="slide-menu-stat">
+        <div class="slide-menu-stat-value" id="slideMenuResults">0</div>
+        <div class="slide-menu-stat-label">Results</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide-menu-section">
+    <div class="slide-menu-section-title">Search History</div>
+    <div id="slideMenuHistory">
+      <div class="slide-menu-item" onclick="alert('Search history coming soon!')">
+        <span class="slide-menu-item-icon">📜</span>
+        <div class="slide-menu-item-content">
+          <div class="slide-menu-item-title">View All Searches</div>
+          <div class="slide-menu-item-subtitle">Browse your search history</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide-menu-divider"></div>
+
+  <div class="slide-menu-section">
+    <div class="slide-menu-section-title">Resources</div>
+    <a href="#" class="slide-menu-item">
+      <span class="slide-menu-item-icon">📖</span>
+      <div class="slide-menu-item-content">
+        <div class="slide-menu-item-title">Documentation</div>
+        <div class="slide-menu-item-subtitle">Learn how to use Alpha Search</div>
+      </div>
+    </a>
+    <a href="#" class="slide-menu-item">
+      <span class="slide-menu-item-icon">🔌</span>
+      <div class="slide-menu-item-content">
+        <div class="slide-menu-item-title">API Access</div>
+        <div class="slide-menu-item-subtitle">Integrate with your apps</div>
+      </div>
+    </a>
+    <a href="#" class="slide-menu-item">
+      <span class="slide-menu-item-icon">📊</span>
+      <div class="slide-menu-item-content">
+        <div class="slide-menu-item-title">Status</div>
+        <div class="slide-menu-item-subtitle">System status & uptime</div>
+      </div>
+    </a>
+  </div>
+
+  <div class="slide-menu-footer">
+    <div class="slide-menu-item" id="slideMenuAuthButton" onclick="handleSlideMenuAuth()">
+      <span class="slide-menu-item-icon">🔐</span>
+      <div class="slide-menu-item-content">
+        <div class="slide-menu-item-title">Sign In</div>
+        <div class="slide-menu-item-subtitle">Track your searches</div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- LOGIN MODAL -->
 <div class="login-modal-overlay" id="loginModal">
@@ -1336,6 +1677,7 @@
       showAccountModal(user);
       closeLoginModal();
       loadSearchHistory();
+      updateSlideMenu();
     } else {
       // Don't hide modal, just keep it in logged-out state
       const accountModalWrap = document.getElementById('accountModalWrap');
@@ -1346,6 +1688,7 @@
       if (accountModal) {
         accountModal.classList.remove('logged-in');
       }
+      updateSlideMenu();
     }
   });
 
@@ -2233,6 +2576,17 @@
       
       await db.collection('searchHistory').add(searchData);
       searchHistory.unshift(searchData);
+      
+      // Update stats
+      userSearchCount++;
+      if (type === 'name' && result && result.pages) {
+        userResultsCount += result.pages.length;
+      } else if (type === 'url') {
+        userResultsCount++;
+      }
+      
+      // Update slide menu
+      updateSlideMenu();
     } catch (error) {
       console.error('Error saving search:', error);
     }
@@ -2252,6 +2606,20 @@
         id: doc.id,
         ...doc.data()
       }));
+      
+      // Update user stats
+      userSearchCount = searchHistory.length;
+      userResultsCount = searchHistory.reduce((sum, search) => {
+        if (search.type === 'name' && search.result && search.result.pages) {
+          return sum + search.result.pages.length;
+        } else if (search.type === 'url') {
+          return sum + 1;
+        }
+        return sum;
+      }, 0);
+      
+      // Update slide menu
+      updateSlideMenu();
     } catch (error) {
       console.error('Error loading history:', error);
     }
@@ -2261,6 +2629,102 @@
     // TODO: Implement history view modal
     alert('Search history feature coming soon!');
     document.getElementById('userDropdown').classList.remove('visible');
+  }
+
+  // ── SLIDE MENU ──
+
+  function toggleSlideMenu() {
+    const menu = document.getElementById('slideMenu');
+    const overlay = document.getElementById('slideMenuOverlay');
+    const button = document.getElementById('menuButton');
+    
+    const isVisible = menu.classList.contains('visible');
+    
+    if (isVisible) {
+      closeSlideMenu();
+    } else {
+      menu.classList.add('visible');
+      overlay.classList.add('visible');
+      button.classList.add('active');
+    }
+  }
+
+  function closeSlideMenu() {
+    const menu = document.getElementById('slideMenu');
+    const overlay = document.getElementById('slideMenuOverlay');
+    const button = document.getElementById('menuButton');
+    
+    menu.classList.remove('visible');
+    overlay.classList.remove('visible');
+    button.classList.remove('active');
+  }
+
+  function updateSlideMenu() {
+    const user = currentUser;
+    const slideMenuUser = document.getElementById('slideMenuUser');
+    const slideMenuStats = document.getElementById('slideMenuStats');
+    const slideMenuAvatar = document.getElementById('slideMenuAvatar');
+    const slideMenuUserName = document.getElementById('slideMenuUserName');
+    const slideMenuUserEmail = document.getElementById('slideMenuUserEmail');
+    const slideMenuSearches = document.getElementById('slideMenuSearches');
+    const slideMenuResults = document.getElementById('slideMenuResults');
+    const slideMenuAuthButton = document.getElementById('slideMenuAuthButton');
+    
+    if (user) {
+      // Show user info
+      slideMenuUser.style.display = 'flex';
+      slideMenuStats.style.display = 'flex';
+      
+      // Set avatar
+      if (user.photoURL) {
+        slideMenuAvatar.innerHTML = `<img src="${user.photoURL}" alt="${user.displayName || 'User'}" />`;
+      } else {
+        const initial = (user.displayName || user.email || 'U')[0].toUpperCase();
+        slideMenuAvatar.textContent = initial;
+      }
+      
+      // Set user info
+      slideMenuUserName.textContent = user.displayName || user.email.split('@')[0];
+      slideMenuUserEmail.textContent = user.email;
+      
+      // Set stats
+      slideMenuSearches.textContent = userSearchCount;
+      slideMenuResults.textContent = userResultsCount;
+      
+      // Update auth button to sign out
+      slideMenuAuthButton.innerHTML = `
+        <span class="slide-menu-item-icon">🚪</span>
+        <div class="slide-menu-item-content">
+          <div class="slide-menu-item-title">Sign Out</div>
+          <div class="slide-menu-item-subtitle">See you next time</div>
+        </div>
+      `;
+    } else {
+      // Hide user info
+      slideMenuUser.style.display = 'none';
+      slideMenuStats.style.display = 'none';
+      
+      // Update auth button to sign in
+      slideMenuAuthButton.innerHTML = `
+        <span class="slide-menu-item-icon">🔐</span>
+        <div class="slide-menu-item-content">
+          <div class="slide-menu-item-title">Sign In</div>
+          <div class="slide-menu-item-subtitle">Track your searches</div>
+        </div>
+      `;
+    }
+  }
+
+  function handleSlideMenuAuth() {
+    if (currentUser) {
+      // Sign out
+      logout();
+      closeSlideMenu();
+    } else {
+      // Open login modal
+      openLoginModal();
+      closeSlideMenu();
+    }
   }
 
   // ── ACCOUNT PROMPT (after first search) ──
