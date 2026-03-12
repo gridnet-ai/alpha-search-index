@@ -1,12 +1,10 @@
-const { Connector } = require('@google-cloud/cloud-sql-connector');
 const pg = require('pg');
 
-const connector = new Connector();
 let pool = null;
 
 /**
  * Get or create PostgreSQL connection pool
- * Uses Cloud SQL Connector for secure connections
+ * Uses direct connection with public IP and authorized networks
  */
 async function getPool() {
   if (pool) {
@@ -14,23 +12,18 @@ async function getPool() {
   }
 
   try {
-    // Get connection options from Cloud SQL Connector
-    const clientOpts = await connector.getOptions({
-      instanceConnectionName:
-        process.env.CLOUD_SQL_INSTANCE ||
-        'alpha-search-index:us-central1:alpha-search-index-db',
-      ipType: 'PUBLIC', // Use public IP for Cloud Functions/Run without VPC
-    });
-
-    // Create connection pool
+    // Direct connection using public IP (simpler for development)
+    // For production, consider using Cloud SQL Proxy or VPC connector
     pool = new pg.Pool({
-      ...clientOpts,
+      host:                   process.env.CLOUD_SQL_HOST     || '35.188.95.41', // Public IP
+      port:                   5432,
       user:                   process.env.CLOUD_SQL_USER     || 'alpha_user',
       password:               process.env.CLOUD_SQL_PASSWORD,
       database:               process.env.CLOUD_SQL_DATABASE || 'alpha_search',
       max:                    20,  // Maximum pool size
       idleTimeoutMillis:      30000,  // Close idle connections after 30s
       connectionTimeoutMillis:10000,  // Timeout after 10s if can't connect
+      ssl:                    false, // Cloud SQL doesn't require SSL for authorized networks
     });
 
     // Handle pool errors

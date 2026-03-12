@@ -1,6 +1,5 @@
 const express = require('express');
 const admin = require('firebase-admin');
-const { Connector } = require('@google-cloud/cloud-sql-connector');
 const pg = require('pg');
 const { Storage } = require('@google-cloud/storage');
 
@@ -22,24 +21,22 @@ let pool = null;
 async function getPool() {
   if (pool) return pool;
 
-  const connector = new Connector();
-  const clientOpts = await connector.getOptions({
-    instanceConnectionName: process.env.CLOUD_SQL_INSTANCE ||
-      'alpha-search-index:us-central1:alpha-search-index-db',
-    ipType: 'PUBLIC',
-  });
-
+  // Direct connection using public IP (simpler for development)
+  // For production, consider using Cloud SQL Proxy or VPC connector
   pool = new pg.Pool({
-    ...clientOpts,
+    host: process.env.CLOUD_SQL_HOST || '35.188.95.41', // Public IP
+    port: 5432,
     user: process.env.CLOUD_SQL_USER || 'alpha_user',
     password: process.env.CLOUD_SQL_PASSWORD,
     database: process.env.CLOUD_SQL_DATABASE || 'alpha_search',
     max: 20,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 10000,
+    ssl: false, // Cloud SQL doesn't require SSL for authorized networks
   });
 
   pool.on('error', (err) => console.error('Pool error:', err));
+  console.log('Database connection pool created');
   return pool;
 }
 
