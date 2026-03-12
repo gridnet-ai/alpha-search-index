@@ -978,6 +978,80 @@
     display: block;
   }
 
+  .login-input-group {
+    margin-bottom: 12px;
+  }
+
+  .login-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 10px;
+    background: var(--bg);
+    box-shadow: inset 4px 4px 8px #ddd, inset -4px -4px 8px #fff;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    color: var(--text-primary);
+    outline: none;
+    transition: all 0.2s;
+  }
+
+  .login-input:focus {
+    box-shadow: inset 6px 6px 10px #ddd, inset -6px -6px 10px #fff;
+  }
+
+  .login-input::placeholder {
+    color: var(--text-tertiary);
+  }
+
+  .login-btn-primary {
+    background: var(--accent-blue);
+    color: white;
+    box-shadow: 6px 6px 10px rgba(0,0,0,0.1), -2px -2px 6px rgba(255,255,255,0.5);
+  }
+
+  .login-btn-primary:hover {
+    background: #5a8fff;
+    box-shadow: 8px 8px 12px rgba(0,0,0,0.15), -2px -2px 6px rgba(255,255,255,0.5);
+  }
+
+  .login-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 16px 0;
+    color: var(--text-tertiary);
+    font-size: 11px;
+  }
+
+  .login-divider::before,
+  .login-divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid rgba(90,95,122,0.15);
+  }
+
+  .login-divider span {
+    padding: 0 12px;
+  }
+
+  .login-toggle-auth {
+    margin-top: 16px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .login-toggle-link {
+    color: var(--accent-blue);
+    text-decoration: none;
+    font-weight: 500;
+    margin-left: 4px;
+  }
+
+  .login-toggle-link:hover {
+    text-decoration: underline;
+  }
 
   /* Persistent Account Modal (stacks above search bar) */
   .account-modal-wrap {
@@ -1691,6 +1765,36 @@
 
       <div class="login-error" id="loginError"></div>
 
+      <!-- Email/Password Fields -->
+      <div class="login-input-group">
+        <input 
+          type="email" 
+          class="login-input" 
+          id="loginEmail" 
+          placeholder="Email address"
+          autocomplete="email"
+        />
+      </div>
+      
+      <div class="login-input-group">
+        <input 
+          type="password" 
+          class="login-input" 
+          id="loginPassword" 
+          placeholder="Password"
+          autocomplete="current-password"
+        />
+      </div>
+
+      <!-- Email Sign In Button -->
+      <button class="login-btn login-btn-primary" id="loginSubmit" onclick="handleEmailAuth()">
+        Sign In
+      </button>
+
+      <div class="login-divider">
+        <span>or</span>
+      </div>
+
       <!-- Google Sign In -->
       <button class="login-btn" onclick="signInWithGoogle()">
         <svg class="login-btn-icon" viewBox="0 0 24 24">
@@ -1701,6 +1805,12 @@
         </svg>
         Continue with Google
       </button>
+
+      <!-- Toggle between Sign In / Sign Up -->
+      <div class="login-toggle-auth">
+        <span id="loginToggleText">Don't have an account?</span>
+        <a href="#" class="login-toggle-link" onclick="toggleAuthMode(); return false;">Sign up</a>
+      </div>
     </div>
   </div>
 </div>
@@ -2677,11 +2787,11 @@
     if (authMode === 'signup') {
       submitBtn.textContent = 'Create Account';
       toggleText.textContent = 'Already have an account?';
-      modalTitle.textContent = 'Create an Account';
+      modalTitle.textContent = 'Create Account';
     } else {
       submitBtn.textContent = 'Sign In';
       toggleText.textContent = "Don't have an account?";
-      modalTitle.textContent = 'Welcome Back';
+      modalTitle.textContent = 'Sign In';
     }
     clearLoginError();
   }
