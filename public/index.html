@@ -1392,8 +1392,61 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: var(--text-tertiary);
-    margin-bottom: 6px;
+    margin-bottom: 8px;
     font-family: 'DM Mono', monospace;
+  }
+  
+  .saved-term-input-wrap {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  
+  .saved-term-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(90,95,122,0.2);
+    padding: 6px 0;
+    font-size: 13px;
+    color: var(--text-primary);
+    font-family: 'DM Mono', monospace;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  
+  .saved-term-input:focus {
+    border-bottom-color: var(--accent-blue);
+  }
+  
+  .saved-term-input::placeholder {
+    color: var(--text-tertiary);
+    opacity: 0.6;
+  }
+  
+  .saved-term-save-btn {
+    background: var(--bg);
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+    box-shadow: inset 2px 2px 4px rgba(0,0,0,0.05), 
+                inset -2px -2px 4px rgba(255,255,255,0.9);
+    transition: all 0.2s;
+    font-family: 'DM Mono', monospace;
+  }
+  
+  .saved-term-save-btn:hover {
+    background: var(--accent-blue);
+    color: white;
+    box-shadow: none;
+  }
+  
+  .saved-term-save-btn:active {
+    transform: scale(0.95);
   }
   
   .saved-term-value {
@@ -1579,7 +1632,11 @@
     <!-- Saved Search Term (editable, expandable) -->
     <div class="slide-menu-saved-term" id="slideMenuSavedTerm" style="display: none;">
       <div class="saved-term-label">Your Search Term</div>
-      <div class="saved-term-value" id="savedTermValue" onclick="toggleSavedTermDetails()">--</div>
+      <div class="saved-term-input-wrap">
+        <input type="text" class="saved-term-input" id="savedTermInput" placeholder="Enter a name or domain..." />
+        <button class="saved-term-save-btn" id="savedTermSaveBtn" onclick="saveSavedTerm()">Save</button>
+      </div>
+      <div class="saved-term-value" id="savedTermValue" onclick="toggleSavedTermDetails()" style="display: none;">--</div>
       <div class="saved-term-details" id="savedTermDetails" style="display: none;">
         <!-- Expandable summary data will go here -->
       </div>
@@ -2958,6 +3015,27 @@
     button.classList.remove('active');
   }
   
+  async function saveSavedTerm() {
+    const input = document.getElementById('savedTermInput');
+    const term = input.value.trim();
+    
+    if (!term) {
+      alert('Please enter a search term');
+      return;
+    }
+    
+    // Close slide menu
+    closeSlideMenu();
+    
+    // Trigger search with the saved term
+    const searchInput = document.getElementById('searchInput');
+    searchInput.value = term;
+    await handleSearch();
+    
+    // Clear input
+    input.value = '';
+  }
+  
   function toggleSavedTermDetails() {
     const details = document.getElementById('savedTermDetails');
     const value = document.getElementById('savedTermValue');
@@ -3024,13 +3102,18 @@
       
       // Set saved search term (most recent search)
       const savedTermValue = document.getElementById('savedTermValue');
+      const savedTermInputWrap = document.querySelector('.saved-term-input-wrap');
+      
       if (searchHistory.length > 0) {
         const latestSearch = searchHistory[0];
         savedTermValue.textContent = latestSearch.query;
         savedTermValue.setAttribute('data-score', latestSearch.alphaScore);
         savedTermValue.setAttribute('data-grade', latestSearch.grade);
+        savedTermValue.style.display = 'block';
+        savedTermInputWrap.style.display = 'none';
       } else {
-        savedTermValue.textContent = 'No searches yet';
+        savedTermValue.style.display = 'none';
+        savedTermInputWrap.style.display = 'flex';
       }
       
       // Update auth button to sign out
