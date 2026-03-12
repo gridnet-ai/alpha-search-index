@@ -1052,6 +1052,11 @@
   }
 
   /* Logged in state - transforms to square avatar */
+  .account-modal-wrap.logged-in .account-modal-inner {
+    display: flex;
+    justify-content: flex-end;
+  }
+
   .account-modal.logged-in {
     padding: 0;
     width: 48px;
@@ -1061,6 +1066,7 @@
     justify-content: center;
     overflow: hidden;
     cursor: pointer;
+    gap: 0;
   }
 
   .account-modal.logged-in:hover {
@@ -1070,11 +1076,11 @@
 
   .account-modal.logged-in .account-narrative,
   .account-modal.logged-in .account-cta-button {
-    display: none;
+    display: none !important;
   }
 
   .account-modal.logged-in .account-avatar {
-    display: flex;
+    display: flex !important;
     align-items: center;
     justify-content: center;
     width: 100%;
@@ -1332,7 +1338,11 @@
       loadSearchHistory();
     } else {
       // Don't hide modal, just keep it in logged-out state
+      const accountModalWrap = document.getElementById('accountModalWrap');
       const accountModal = document.getElementById('accountModal');
+      if (accountModalWrap) {
+        accountModalWrap.classList.remove('logged-in');
+      }
       if (accountModal) {
         accountModal.classList.remove('logged-in');
       }
@@ -2148,7 +2158,7 @@
     const accountModal = document.getElementById('accountModal');
     const accountAvatar = document.getElementById('accountAvatar');
     
-    accountModalWrap.classList.add('visible');
+    accountModalWrap.classList.add('visible', 'logged-in');
     accountModal.classList.add('logged-in');
     
     if (user.photoURL) {
@@ -2165,7 +2175,7 @@
   function hideAccountModal() {
     const accountModalWrap = document.getElementById('accountModalWrap');
     const accountModal = document.getElementById('accountModal');
-    accountModalWrap.classList.remove('visible');
+    accountModalWrap.classList.remove('visible', 'logged-in');
     accountModal.classList.remove('logged-in');
     document.getElementById('accountDropdown').classList.remove('visible');
   }
