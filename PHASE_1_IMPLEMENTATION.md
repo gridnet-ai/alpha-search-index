@@ -1,10 +1,48 @@
 # Phase 1: Extend Current System for People & Products
 
-## Goal
-Add support for indexing **people** and **products** using the existing Firestore infrastructure, with 24-hour cache for all entity types.
+## ⚠️ DEPRECATED - DO NOT IMPLEMENT THIS PHASE
 
-**Timeline**: 1 week  
-**Effort**: ~20 hours
+**This phase is no longer recommended and should be skipped entirely.**
+
+### Rationale for Deprecation
+
+1. **Wasted Migration Work**: Extending Firestore for people and products means migrating these records twice:
+   - First: Implement in Firestore (this phase)
+   - Second: Migrate from Firestore to Cloud SQL (Phase 2)
+   - **Result**: Double the migration work, double the risk
+
+2. **Cloud SQL is Required for Scale**: The target is 30M AI Records (10M domains + 10M people + 10M products). Firestore becomes expensive and slow at this scale:
+   - Firestore at 30M records: $2,000+/month
+   - Cloud SQL at 30M records: $270/month
+   - **Savings**: 86% cost reduction with Cloud SQL
+
+3. **Better to Start Right**: Implementing people and products directly in Cloud SQL from the start:
+   - Single migration (Firestore domains → Cloud SQL)
+   - Unified schema from day one
+   - No need to maintain two systems temporarily
+   - Faster time to production
+
+### Recommended Alternative
+
+**Skip Phase 1 entirely and go straight to Phase 2: Cloud SQL Migration**
+
+See [ALPHA_INDEX_ARCHITECTURE.md](ALPHA_INDEX_ARCHITECTURE.md) for the updated migration path, which includes:
+- 3-stage validation strategy (export/count, spot-check, dual-read)
+- Cutover checklist to prevent data loss
+- Tiered TTL caching (domains 24hr, people 7d, products 48hr)
+- Discovery system with Common Crawl domain index
+
+---
+
+## Original Phase 1 Plan (For Reference Only)
+
+**DO NOT IMPLEMENT - This section is preserved for historical reference.**
+
+### Goal (DEPRECATED)
+~~Add support for indexing **people** and **products** using the existing Firestore infrastructure, with 24-hour cache for all entity types.~~
+
+**Timeline**: ~~1 week~~ **SKIP THIS PHASE**  
+**Effort**: ~~20 hours~~ **0 hours - DO NOT IMPLEMENT**
 
 ---
 
