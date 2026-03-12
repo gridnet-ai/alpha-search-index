@@ -962,49 +962,118 @@
     display: block;
   }
 
-  /* User menu (top right) */
-  .user-menu {
-    position: fixed;
-    top: 28px;
-    right: 24px;
-    z-index: 50;
+
+  /* Persistent Account Button (stacks above search bar) */
+  .account-button-wrap {
+    position: relative;
+    z-index: 10;
+    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     display: none;
+    opacity: 0;
   }
 
-  .user-menu.visible {
+  .account-button-wrap.visible {
     display: block;
+    opacity: 1;
   }
 
-  .user-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: var(--bg);
-    box-shadow: var(--neu-raised);
-    cursor: pointer;
+  /* Center state (with search bar) */
+  .account-button-wrap.center {
+    max-width: 660px;
+    width: calc(100% - 48px);
+    margin: 0 auto 12px;
+  }
+
+  /* Bottom fixed state (stacks above fixed search bar) */
+  .account-button-wrap.bottom {
+    position: fixed;
+    bottom: 88px; /* 20px above search bar (68px search height + 20px padding) */
+    left: 0;
+    right: 0;
+    margin: 0;
+    max-width: 100%;
+    padding: 0 24px;
+  }
+
+  .account-button-wrap.bottom .account-button-inner {
+    max-width: 660px;
+    margin: 0 auto;
+  }
+
+  .account-button {
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 10px;
+    padding: 12px 24px;
+    border-radius: 12px;
+    border: none;
+    background: var(--bg);
+    box-shadow: var(--neu-raised);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 100%;
+  }
+
+  .account-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 6px 8px 16px #c8cad4, -6px -8px 16px #ffffff;
+  }
+
+  .account-button-icon {
     font-size: 16px;
-    font-weight: 600;
-    color: var(--accent-blue);
-    transition: all 0.2s;
+  }
+
+  .account-button-text {
+    flex: 1;
+    text-align: left;
+  }
+
+  /* Logged in state - transforms to square avatar */
+  .account-button.logged-in {
+    padding: 0;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    margin-left: auto;
+    justify-content: center;
     overflow: hidden;
   }
 
-  .user-avatar:hover {
-    transform: scale(1.05);
+  .account-button.logged-in .account-button-text,
+  .account-button.logged-in .account-button-icon {
+    display: none;
   }
 
-  .user-avatar img {
+  .account-button.logged-in .account-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--accent-blue);
+  }
+
+  .account-button .account-avatar {
+    display: none;
+  }
+
+  .account-avatar img {
     width: 100%;
     height: 100%;
     object-fit: cover;
   }
 
-  .user-dropdown {
+  /* Dropdown for logged in state */
+  .account-dropdown {
     position: absolute;
-    top: 52px;
+    bottom: 60px;
     right: 0;
     background: var(--bg);
     border-radius: 16px;
@@ -1013,17 +1082,17 @@
     min-width: 200px;
     display: none;
     opacity: 0;
-    transform: translateY(-10px);
+    transform: translateY(10px);
     transition: all 0.3s ease;
   }
 
-  .user-dropdown.visible {
+  .account-dropdown.visible {
     display: block;
     opacity: 1;
     transform: translateY(0);
   }
 
-  .user-dropdown-item {
+  .account-dropdown-item {
     padding: 10px 14px;
     border-radius: 10px;
     font-size: 13px;
@@ -1035,136 +1104,40 @@
     gap: 10px;
   }
 
-  .user-dropdown-item:hover {
+  .account-dropdown-item:hover {
     background: rgba(255,255,255,0.5);
   }
 
-  .user-dropdown-divider {
+  .account-dropdown-divider {
     height: 1px;
     background: linear-gradient(90deg, transparent, var(--shadow-dark), transparent);
     opacity: 0.3;
     margin: 8px 0;
   }
 
-  /* Account prompt (after first search) */
-  .account-prompt {
-    background: linear-gradient(135deg, rgba(74,143,255,0.08), rgba(52,199,138,0.08));
-    border: 1px solid rgba(74,143,255,0.2);
-    border-radius: 16px;
-    padding: 20px 24px;
-    margin: 16px 0;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  }
-
-  .account-prompt-icon {
-    font-size: 32px;
-    flex-shrink: 0;
-  }
-
-  .account-prompt-content {
-    flex: 1;
-  }
-
-  .account-prompt-title {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 4px;
-  }
-
-  .account-prompt-subtitle {
-    font-size: 12px;
-    color: var(--text-secondary);
-    line-height: 1.4;
-  }
-
-  .account-prompt-btn {
-    padding: 10px 20px;
-    border-radius: 10px;
-    border: none;
-    background: var(--accent-blue);
-    color: white;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    box-shadow: 3px 3px 8px rgba(74,143,255,0.35);
-    transition: all 0.2s;
-    white-space: nowrap;
-  }
-
-  .account-prompt-btn:hover {
-    background: #3d7fee;
-    transform: translateY(-1px);
-  }
-
-  .account-prompt-close {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    color: var(--text-tertiary);
-    transition: all 0.2s;
-    flex-shrink: 0;
-  }
-
-  .account-prompt-close:hover {
-    color: var(--text-primary);
-    background: rgba(255,255,255,0.5);
-  }
-
   @media (max-width: 768px) {
-    .account-prompt {
-      flex-direction: column;
-      text-align: center;
-      padding: 16px 20px;
+    .account-button-wrap.center {
+      width: calc(100% - 32px);
     }
 
-    .account-prompt-icon {
-      font-size: 28px;
+    .account-button-wrap.bottom {
+      bottom: 78px; /* Adjust for mobile search bar height */
+      padding: 0 16px;
     }
 
-    .account-prompt-btn {
-      width: 100%;
+    .account-button {
+      font-size: 12px;
+      padding: 10px 20px;
     }
 
-    .user-menu {
-      top: 16px;
-      right: 16px;
-    }
-
-    .user-avatar {
-      width: 36px;
-      height: 36px;
-      font-size: 14px;
+    .account-button.logged-in {
+      width: 42px;
+      height: 42px;
     }
   }
 </style>
 </head>
 <body>
-
-<!-- USER MENU (top right, shows when logged in) -->
-<div class="user-menu" id="userMenu">
-  <div class="user-avatar" id="userAvatar" onclick="toggleUserDropdown()"></div>
-  <div class="user-dropdown" id="userDropdown">
-    <div class="user-dropdown-item" onclick="viewHistory()">
-      📜 Search History
-    </div>
-    <div class="user-dropdown-divider"></div>
-    <div class="user-dropdown-item" onclick="logout()">
-      🚪 Sign Out
-    </div>
-  </div>
-</div>
 
 <!-- LOGIN MODAL -->
 <div class="login-modal-overlay" id="loginModal">
@@ -1232,6 +1205,26 @@
   <!-- CHAT OUTPUT -->
   <div class="chat-area" id="chatArea"></div>
 
+  <!-- ACCOUNT BUTTON (stacks above search bar) -->
+  <div class="account-button-wrap center" id="accountButtonWrap">
+    <div class="account-button-inner">
+      <button class="account-button" id="accountButton" onclick="handleAccountButtonClick()">
+        <span class="account-button-icon">🚀</span>
+        <span class="account-button-text">Create an Account to Increase Your AI Rank</span>
+        <div class="account-avatar" id="accountAvatar"></div>
+      </button>
+      <div class="account-dropdown" id="accountDropdown">
+        <div class="account-dropdown-item" onclick="viewHistory()">
+          📜 Search History
+        </div>
+        <div class="account-dropdown-divider"></div>
+        <div class="account-dropdown-item" onclick="logout()">
+          🚪 Sign Out
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- SEARCH BAR -->
   <div class="hero-bottom" id="heroBottom">
     <div class="search-wrap center" id="searchWrap">
@@ -1285,11 +1278,15 @@
   auth.onAuthStateChanged(user => {
     currentUser = user;
     if (user) {
-      showUserMenu(user);
+      showAccountButton(user);
       closeLoginModal();
       loadSearchHistory();
     } else {
-      hideUserMenu();
+      // Don't hide button, just keep it in logged-out state
+      const accountButton = document.getElementById('accountButton');
+      if (accountButton) {
+        accountButton.classList.remove('logged-in');
+      }
     }
   });
 
@@ -1344,6 +1341,7 @@
 
     const hero = document.getElementById('hero');
     const searchWrap = document.getElementById('searchWrap');
+    const accountButtonWrap = document.getElementById('accountButtonWrap');
     const hintText = document.getElementById('hintText');
     const footer = document.getElementById('footer');
     const heroBottom = document.getElementById('heroBottom');
@@ -1355,6 +1353,18 @@
     searchWrap.classList.remove('center');
     searchWrap.classList.add('bottom');
     document.body.appendChild(searchWrap);
+
+    // detach account button, fix to bottom (above search bar)
+    accountButtonWrap.classList.remove('center');
+    accountButtonWrap.classList.add('bottom');
+    document.body.appendChild(accountButtonWrap);
+
+    // Show account button after first search (if not logged in)
+    if (!currentUser) {
+      setTimeout(() => {
+        accountButtonWrap.classList.add('visible');
+      }, 800);
+    }
 
     hintText.style.display = 'none';
     footer.style.opacity = '0';
@@ -1638,9 +1648,6 @@
       // Save to history if logged in
       await saveSearchToHistory(domain, 'url', data);
 
-      // Show account prompt after first search (if not logged in)
-      setTimeout(() => showAccountPrompt(), 800);
-
     } catch (error) {
       console.error('Crawl error:', error);
       
@@ -1810,9 +1817,6 @@
 
         // Save to history if logged in
         await saveSearchToHistory(query, 'name', data);
-
-        // Show account prompt after first search (if not logged in)
-        setTimeout(() => showAccountPrompt(), data.results.length * 80 + 1000);
       }
 
     } catch (error) {
@@ -2011,34 +2015,45 @@
     }
   }
 
-  function showUserMenu(user) {
-    const userMenu = document.getElementById('userMenu');
-    const userAvatar = document.getElementById('userAvatar');
+  function showAccountButton(user) {
+    const accountButtonWrap = document.getElementById('accountButtonWrap');
+    const accountButton = document.getElementById('accountButton');
+    const accountAvatar = document.getElementById('accountAvatar');
     
-    userMenu.classList.add('visible');
+    accountButtonWrap.classList.add('visible');
+    accountButton.classList.add('logged-in');
     
     if (user.photoURL) {
-      userAvatar.innerHTML = `<img src="${user.photoURL}" alt="${user.displayName || user.email}">`;
+      accountAvatar.innerHTML = `<img src="${user.photoURL}" alt="${user.displayName || user.email}">`;
     } else {
       const initial = (user.displayName || user.email || '?')[0].toUpperCase();
-      userAvatar.textContent = initial;
+      accountAvatar.textContent = initial;
     }
   }
 
-  function hideUserMenu() {
-    document.getElementById('userMenu').classList.remove('visible');
-    document.getElementById('userDropdown').classList.remove('visible');
+  function hideAccountButton() {
+    const accountButtonWrap = document.getElementById('accountButtonWrap');
+    const accountButton = document.getElementById('accountButton');
+    accountButtonWrap.classList.remove('visible');
+    accountButton.classList.remove('logged-in');
+    document.getElementById('accountDropdown').classList.remove('visible');
   }
 
-  function toggleUserDropdown() {
-    document.getElementById('userDropdown').classList.toggle('visible');
+  function handleAccountButtonClick() {
+    if (currentUser) {
+      // Toggle dropdown if logged in
+      document.getElementById('accountDropdown').classList.toggle('visible');
+    } else {
+      // Open login modal if not logged in
+      openLoginModal();
+    }
   }
 
   // Close dropdown when clicking outside
   document.addEventListener('click', (e) => {
-    const userMenu = document.getElementById('userMenu');
-    const dropdown = document.getElementById('userDropdown');
-    if (!userMenu.contains(e.target) && dropdown.classList.contains('visible')) {
+    const accountButtonWrap = document.getElementById('accountButtonWrap');
+    const dropdown = document.getElementById('accountDropdown');
+    if (accountButtonWrap && !accountButtonWrap.contains(e.target) && dropdown.classList.contains('visible')) {
       dropdown.classList.remove('visible');
     }
   });
@@ -2098,29 +2113,6 @@
 
   // ── ACCOUNT PROMPT (after first search) ──
   
-  function showAccountPrompt() {
-    if (currentUser || hasSearched) return;
-    
-    hasSearched = true;
-    
-    const chatArea = document.getElementById('chatArea');
-    const prompt = document.createElement('div');
-    prompt.className = 'account-prompt';
-    prompt.innerHTML = `
-      <div class="account-prompt-icon">🚀</div>
-      <div class="account-prompt-content">
-        <div class="account-prompt-title">Create an Account to Increase Your AI Rank</div>
-        <div class="account-prompt-subtitle">Track your searches, monitor your AI visibility over time, and get personalized recommendations.</div>
-      </div>
-      <button class="account-prompt-btn" onclick="openLoginModal(); this.closest('.account-prompt').remove();">
-        Create Account
-      </button>
-      <button class="account-prompt-close" onclick="this.closest('.account-prompt').remove();">×</button>
-    `;
-    
-    chatArea.appendChild(prompt);
-    scrollBottom();
-  }
 </script>
 </body>
 </html>
