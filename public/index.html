@@ -1609,6 +1609,13 @@
     document.getElementById('statusText').textContent = 'Index live · 2.4M domains';
   }, 1600);
 
+  // ── SHOW LOGIN MODAL ON PAGE LOAD (if not logged in) ──
+  setTimeout(() => {
+    if (!currentUser) {
+      openLoginModal();
+    }
+  }, 2000);
+
   // ── STATE ──
   let shifted = false;
 
@@ -2123,6 +2130,22 @@
     chatArea.appendChild(statusBubble);
     scrollBottom();
 
+    // Cycle through search narratives while waiting for API
+    const statusSub = statusBubble.querySelector('.status-sub');
+    const searchNarratives = [
+      'Searching the web',
+      'Querying search engines...',
+      'Finding relevant pages...',
+      'Collecting results...'
+    ];
+    let narrativeIndex = 0;
+    const narrativeInterval = setInterval(() => {
+      narrativeIndex = (narrativeIndex + 1) % searchNarratives.length;
+      if (statusSub) {
+        statusSub.textContent = searchNarratives[narrativeIndex];
+      }
+    }, 800);
+
     try {
       // REAL API CALL
       const response = await fetch('/api/search', {
@@ -2130,6 +2153,9 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: query })
       });
+
+      // Stop narrative cycling
+      clearInterval(narrativeInterval);
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -2213,6 +2239,9 @@
 
     } catch (error) {
       console.error('Name search error:', error);
+      
+      // Stop narrative cycling
+      clearInterval(narrativeInterval);
       
       // Remove status bubble if it exists
       if (statusBubble && statusBubble.parentNode) {
