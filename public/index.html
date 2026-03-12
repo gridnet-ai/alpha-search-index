@@ -720,75 +720,84 @@
 
   .login-modal-overlay.visible {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: center;
     opacity: 1;
   }
 
   .login-modal {
+    width: 240px;
     background: var(--bg);
+    text-align: center;
+    border: 12px solid var(--bg);
     border-radius: 20px;
-    box-shadow: var(--neu-raised), 0 20px 60px rgba(26, 28, 46, 0.2);
-    padding: 32px 28px;
-    max-width: 420px;
-    width: calc(100% - 48px);
-    margin-top: 0;
-    transform: translateY(-20px);
-    opacity: 0;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: inset 5px 5px 10px #bbb, inset -5px -5px 10px #fff;
+    transition: all 0.5s ease;
+    padding: 0;
     position: relative;
-  }
-
-  .login-modal-overlay.visible .login-modal {
-    margin-top: 120px;
-    transform: translateY(0);
-    opacity: 1;
-  }
-
-  /* Modal morphs from search bar on mobile */
-  @media (max-width: 768px) {
-    .login-modal-overlay.visible .login-modal {
-      margin-top: 80px;
-    }
+    overflow: hidden;
   }
 
   .login-modal-close {
     position: absolute;
-    top: 16px;
-    right: 16px;
-    width: 32px;
-    height: 32px;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     background: var(--bg);
-    box-shadow: var(--neu-sm);
+    box-shadow: 4px 4px 8px #ddd, -4px -4px 8px #fff;
     border: none;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
+    font-size: 16px;
     color: var(--text-tertiary);
     transition: all 0.2s;
+    z-index: 10;
   }
 
   .login-modal-close:hover {
-    box-shadow: var(--neu-raised);
+    transform: scale(1.1);
     color: var(--text-primary);
+  }
+
+  .login-icon {
+    width: 70px;
+    height: 70px;
+    color: var(--accent-blue);
+    font-size: 32px;
+    background: var(--bg);
+    margin: 24px auto 20px;
+    border-radius: 50%;
+    box-shadow: 8px 8px 10px #ddd, -8px -8px 10px #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .login-content {
+    color: #999;
+    background: var(--bg);
+    padding: 20px;
+    margin: 0;
+    border-radius: 0;
+    box-shadow: none;
   }
 
   .login-modal-title {
-    font-size: 22px;
+    font-size: 18px;
     font-weight: 600;
     color: var(--text-primary);
     margin-bottom: 8px;
-    text-align: center;
+    text-shadow: 2px 2px 0px #fff;
   }
 
   .login-modal-subtitle {
-    font-size: 13px;
+    font-size: 12px;
     color: var(--text-secondary);
-    margin-bottom: 24px;
-    text-align: center;
+    margin-bottom: 20px;
     line-height: 1.5;
   }
 
@@ -802,149 +811,70 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    padding: 14px 24px;
-    border-radius: 12px;
+    gap: 10px;
+    padding: 12px 20px;
+    border-radius: 10px;
     border: none;
     background: var(--bg);
-    box-shadow: var(--neu-raised);
+    box-shadow: 6px 6px 10px #ddd, -6px -6px 10px #fff;
     font-family: 'DM Sans', sans-serif;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
     color: var(--text-primary);
     cursor: pointer;
     transition: all 0.2s;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
   }
 
   .login-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 6px 8px 16px #c8cad4, -6px -8px 16px #ffffff;
+    box-shadow: 8px 8px 12px #ddd, -8px -8px 12px #fff;
   }
 
   .login-btn:active {
     transform: translateY(0);
-  }
-
-  .login-btn.google {
-    background: white;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  }
-
-  .login-btn.google:hover {
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    box-shadow: inset 4px 4px 8px #ddd, inset -4px -4px 8px #fff;
   }
 
   .login-btn-icon {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
   }
 
   .login-divider {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin: 20px 0;
+    display: none;
   }
 
   .login-divider-line {
-    flex: 1;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--shadow-dark), transparent);
-    opacity: 0.3;
+    display: none;
   }
 
   .login-divider-text {
-    font-size: 11px;
-    font-family: 'DM Mono', monospace;
-    color: var(--text-tertiary);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
+    display: none;
   }
 
   .login-input-group {
-    margin-bottom: 14px;
+    display: none;
   }
 
   .login-input-label {
-    font-size: 11px;
-    font-family: 'DM Mono', monospace;
-    color: var(--text-secondary);
-    margin-bottom: 6px;
-    display: block;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    display: none;
   }
 
   .login-input {
-    width: 100%;
-    padding: 12px 16px;
-    border-radius: 10px;
-    border: none;
-    background: var(--bg);
-    box-shadow: var(--neu-inset);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 14px;
-    color: var(--text-primary);
-    outline: none;
-    transition: all 0.2s;
-  }
-
-  .login-input:focus {
-    box-shadow: inset 3px 3px 8px #c8cad4, inset -3px -3px 8px #ffffff;
-  }
-
-  .login-input::placeholder {
-    color: var(--text-tertiary);
+    display: none;
   }
 
   .login-submit {
-    width: 100%;
-    padding: 14px 24px;
-    border-radius: 12px;
-    border: none;
-    background: var(--accent-blue);
-    color: white;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    box-shadow: 3px 3px 8px rgba(74,143,255,0.35);
-    transition: all 0.2s;
-    margin-top: 8px;
-  }
-
-  .login-submit:hover {
-    background: #3d7fee;
-    transform: translateY(-1px);
-  }
-
-  .login-submit:active {
-    transform: translateY(0);
-  }
-
-  .login-submit:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
+    display: none;
   }
 
   .login-toggle {
-    text-align: center;
-    margin-top: 16px;
-    font-size: 12px;
-    color: var(--text-secondary);
+    display: none;
   }
 
   .login-toggle-link {
-    color: var(--accent-blue);
-    cursor: pointer;
-    text-decoration: none;
-    font-weight: 500;
-  }
-
-  .login-toggle-link:hover {
-    text-decoration: underline;
+    display: none;
   }
 
   .login-error {
@@ -1170,7 +1100,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 25;
+    z-index: 19;
     transition: all 0.2s;
   }
 
@@ -1234,7 +1164,7 @@
     width: 320px;
     background: var(--bg);
     box-shadow: 6px 0 20px rgba(26, 28, 46, 0.15);
-    z-index: 20;
+    z-index: 18;
     transform: translateX(-100%);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
@@ -1484,7 +1414,6 @@
     <div class="slide-menu-section-title">Search History</div>
     <div id="slideMenuHistory">
       <div class="slide-menu-item" onclick="alert('Search history coming soon!')">
-        <span class="slide-menu-item-icon">📜</span>
         <div class="slide-menu-item-content">
           <div class="slide-menu-item-title">View All Searches</div>
           <div class="slide-menu-item-subtitle">Browse your search history</div>
@@ -1498,21 +1427,18 @@
   <div class="slide-menu-section">
     <div class="slide-menu-section-title">Resources</div>
     <a href="#" class="slide-menu-item">
-      <span class="slide-menu-item-icon">📖</span>
       <div class="slide-menu-item-content">
         <div class="slide-menu-item-title">Documentation</div>
         <div class="slide-menu-item-subtitle">Learn how to use Alpha Search</div>
       </div>
     </a>
     <a href="#" class="slide-menu-item">
-      <span class="slide-menu-item-icon">🔌</span>
       <div class="slide-menu-item-content">
         <div class="slide-menu-item-title">API Access</div>
         <div class="slide-menu-item-subtitle">Integrate with your apps</div>
       </div>
     </a>
     <a href="#" class="slide-menu-item">
-      <span class="slide-menu-item-icon">📊</span>
       <div class="slide-menu-item-content">
         <div class="slide-menu-item-title">Status</div>
         <div class="slide-menu-item-subtitle">System status & uptime</div>
@@ -1522,7 +1448,6 @@
 
   <div class="slide-menu-footer">
     <div class="slide-menu-item" id="slideMenuAuthButton" onclick="handleSlideMenuAuth()">
-      <span class="slide-menu-item-icon">🔐</span>
       <div class="slide-menu-item-content">
         <div class="slide-menu-item-title">Sign In</div>
         <div class="slide-menu-item-subtitle">Track your searches</div>
@@ -1536,45 +1461,31 @@
   <div class="login-modal">
     <button class="login-modal-close" onclick="closeLoginModal()">×</button>
     
-    <div class="login-modal-title">Create an Account</div>
-    <div class="login-modal-subtitle">
-      Track your searches and <span class="highlight">increase your AI Rank</span>
-    </div>
-
-    <div class="login-error" id="loginError"></div>
-
-    <!-- Google Sign In -->
-    <button class="login-btn google" onclick="signInWithGoogle()">
-      <svg class="login-btn-icon" viewBox="0 0 24 24">
-        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+    <div class="login-icon">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
       </svg>
-      Continue with Google
-    </button>
-
-    <div class="login-divider">
-      <div class="login-divider-line"></div>
-      <div class="login-divider-text">or</div>
-      <div class="login-divider-line"></div>
     </div>
 
-    <!-- Email/Password Form -->
-    <div id="loginForm">
-      <div class="login-input-group">
-        <label class="login-input-label">Email</label>
-        <input type="email" class="login-input" id="loginEmail" placeholder="you@example.com" autocomplete="email">
+    <div class="login-content">
+      <div class="login-modal-title">Sign In</div>
+      <div class="login-modal-subtitle">
+        Track your searches and <span class="highlight">increase your AI visibility</span>
       </div>
-      <div class="login-input-group">
-        <label class="login-input-label">Password</label>
-        <input type="password" class="login-input" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
-      </div>
-      <button class="login-submit" id="loginSubmit" onclick="handleEmailAuth()">Sign In</button>
-      <div class="login-toggle">
-        <span id="loginToggleText">Don't have an account?</span>
-        <a class="login-toggle-link" onclick="toggleAuthMode()">Sign Up</a>
-      </div>
+
+      <div class="login-error" id="loginError"></div>
+
+      <!-- Google Sign In -->
+      <button class="login-btn" onclick="signInWithGoogle()">
+        <svg class="login-btn-icon" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+        </svg>
+        Continue with Google
+      </button>
     </div>
   </div>
 </div>
@@ -2693,7 +2604,6 @@
       
       // Update auth button to sign out
       slideMenuAuthButton.innerHTML = `
-        <span class="slide-menu-item-icon">🚪</span>
         <div class="slide-menu-item-content">
           <div class="slide-menu-item-title">Sign Out</div>
           <div class="slide-menu-item-subtitle">See you next time</div>
@@ -2706,7 +2616,6 @@
       
       // Update auth button to sign in
       slideMenuAuthButton.innerHTML = `
-        <span class="slide-menu-item-icon">🔐</span>
         <div class="slide-menu-item-content">
           <div class="slide-menu-item-title">Sign In</div>
           <div class="slide-menu-item-subtitle">Track your searches</div>
