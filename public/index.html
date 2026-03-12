@@ -2,11 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Alpha Search — Machine Web Index</title>
 <meta name="description" content="Find out how AI-ready any person, brand, or organization is across the web. Alpha Search scores AI readiness by crawling for machine-readable signals.">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -699,9 +702,517 @@
       font-size: 9px;
     }
   }
+
+  /* ── LOGIN MODAL ── */
+  .login-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(26, 28, 46, 0.4);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .login-modal-overlay.visible {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    opacity: 1;
+  }
+
+  .login-modal {
+    background: var(--bg);
+    border-radius: 20px;
+    box-shadow: var(--neu-raised), 0 20px 60px rgba(26, 28, 46, 0.2);
+    padding: 32px 28px;
+    max-width: 420px;
+    width: calc(100% - 48px);
+    margin-top: 0;
+    transform: translateY(-20px);
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+  }
+
+  .login-modal-overlay.visible .login-modal {
+    margin-top: 120px;
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  /* Modal morphs from search bar on mobile */
+  @media (max-width: 768px) {
+    .login-modal-overlay.visible .login-modal {
+      margin-top: 80px;
+    }
+  }
+
+  .login-modal-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--bg);
+    box-shadow: var(--neu-sm);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: var(--text-tertiary);
+    transition: all 0.2s;
+  }
+
+  .login-modal-close:hover {
+    box-shadow: var(--neu-raised);
+    color: var(--text-primary);
+  }
+
+  .login-modal-title {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    text-align: center;
+  }
+
+  .login-modal-subtitle {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+    text-align: center;
+    line-height: 1.5;
+  }
+
+  .login-modal-subtitle .highlight {
+    color: var(--accent-blue);
+    font-weight: 500;
+  }
+
+  .login-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 14px 24px;
+    border-radius: 12px;
+    border: none;
+    background: var(--bg);
+    box-shadow: var(--neu-raised);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 12px;
+  }
+
+  .login-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 6px 8px 16px #c8cad4, -6px -8px 16px #ffffff;
+  }
+
+  .login-btn:active {
+    transform: translateY(0);
+  }
+
+  .login-btn.google {
+    background: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+
+  .login-btn.google:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+
+  .login-btn-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .login-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 20px 0;
+  }
+
+  .login-divider-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--shadow-dark), transparent);
+    opacity: 0.3;
+  }
+
+  .login-divider-text {
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .login-input-group {
+    margin-bottom: 14px;
+  }
+
+  .login-input-label {
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    display: block;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .login-input {
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 10px;
+    border: none;
+    background: var(--bg);
+    box-shadow: var(--neu-inset);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--text-primary);
+    outline: none;
+    transition: all 0.2s;
+  }
+
+  .login-input:focus {
+    box-shadow: inset 3px 3px 8px #c8cad4, inset -3px -3px 8px #ffffff;
+  }
+
+  .login-input::placeholder {
+    color: var(--text-tertiary);
+  }
+
+  .login-submit {
+    width: 100%;
+    padding: 14px 24px;
+    border-radius: 12px;
+    border: none;
+    background: var(--accent-blue);
+    color: white;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 3px 3px 8px rgba(74,143,255,0.35);
+    transition: all 0.2s;
+    margin-top: 8px;
+  }
+
+  .login-submit:hover {
+    background: #3d7fee;
+    transform: translateY(-1px);
+  }
+
+  .login-submit:active {
+    transform: translateY(0);
+  }
+
+  .login-submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .login-toggle {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .login-toggle-link {
+    color: var(--accent-blue);
+    cursor: pointer;
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .login-toggle-link:hover {
+    text-decoration: underline;
+  }
+
+  .login-error {
+    background: rgba(198, 40, 40, 0.1);
+    border: 1px solid rgba(198, 40, 40, 0.2);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    font-size: 12px;
+    color: #c62828;
+    display: none;
+  }
+
+  .login-error.visible {
+    display: block;
+  }
+
+  /* User menu (top right) */
+  .user-menu {
+    position: fixed;
+    top: 28px;
+    right: 24px;
+    z-index: 50;
+    display: none;
+  }
+
+  .user-menu.visible {
+    display: block;
+  }
+
+  .user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--bg);
+    box-shadow: var(--neu-raised);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--accent-blue);
+    transition: all 0.2s;
+    overflow: hidden;
+  }
+
+  .user-avatar:hover {
+    transform: scale(1.05);
+  }
+
+  .user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .user-dropdown {
+    position: absolute;
+    top: 52px;
+    right: 0;
+    background: var(--bg);
+    border-radius: 16px;
+    box-shadow: var(--neu-raised), 0 10px 30px rgba(26, 28, 46, 0.15);
+    padding: 12px;
+    min-width: 200px;
+    display: none;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+  }
+
+  .user-dropdown.visible {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .user-dropdown-item {
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .user-dropdown-item:hover {
+    background: rgba(255,255,255,0.5);
+  }
+
+  .user-dropdown-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--shadow-dark), transparent);
+    opacity: 0.3;
+    margin: 8px 0;
+  }
+
+  /* Account prompt (after first search) */
+  .account-prompt {
+    background: linear-gradient(135deg, rgba(74,143,255,0.08), rgba(52,199,138,0.08));
+    border: 1px solid rgba(74,143,255,0.2);
+    border-radius: 16px;
+    padding: 20px 24px;
+    margin: 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  .account-prompt-icon {
+    font-size: 32px;
+    flex-shrink: 0;
+  }
+
+  .account-prompt-content {
+    flex: 1;
+  }
+
+  .account-prompt-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+
+  .account-prompt-subtitle {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+  }
+
+  .account-prompt-btn {
+    padding: 10px 20px;
+    border-radius: 10px;
+    border: none;
+    background: var(--accent-blue);
+    color: white;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 3px 3px 8px rgba(74,143,255,0.35);
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .account-prompt-btn:hover {
+    background: #3d7fee;
+    transform: translateY(-1px);
+  }
+
+  .account-prompt-close {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: var(--text-tertiary);
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+
+  .account-prompt-close:hover {
+    color: var(--text-primary);
+    background: rgba(255,255,255,0.5);
+  }
+
+  @media (max-width: 768px) {
+    .account-prompt {
+      flex-direction: column;
+      text-align: center;
+      padding: 16px 20px;
+    }
+
+    .account-prompt-icon {
+      font-size: 28px;
+    }
+
+    .account-prompt-btn {
+      width: 100%;
+    }
+
+    .user-menu {
+      top: 16px;
+      right: 16px;
+    }
+
+    .user-avatar {
+      width: 36px;
+      height: 36px;
+      font-size: 14px;
+    }
+  }
 </style>
 </head>
 <body>
+
+<!-- USER MENU (top right, shows when logged in) -->
+<div class="user-menu" id="userMenu">
+  <div class="user-avatar" id="userAvatar" onclick="toggleUserDropdown()"></div>
+  <div class="user-dropdown" id="userDropdown">
+    <div class="user-dropdown-item" onclick="viewHistory()">
+      📜 Search History
+    </div>
+    <div class="user-dropdown-divider"></div>
+    <div class="user-dropdown-item" onclick="logout()">
+      🚪 Sign Out
+    </div>
+  </div>
+</div>
+
+<!-- LOGIN MODAL -->
+<div class="login-modal-overlay" id="loginModal">
+  <div class="login-modal">
+    <button class="login-modal-close" onclick="closeLoginModal()">×</button>
+    
+    <div class="login-modal-title">Create an Account</div>
+    <div class="login-modal-subtitle">
+      Track your searches and <span class="highlight">increase your AI Rank</span>
+    </div>
+
+    <div class="login-error" id="loginError"></div>
+
+    <!-- Google Sign In -->
+    <button class="login-btn google" onclick="signInWithGoogle()">
+      <svg class="login-btn-icon" viewBox="0 0 24 24">
+        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+      </svg>
+      Continue with Google
+    </button>
+
+    <div class="login-divider">
+      <div class="login-divider-line"></div>
+      <div class="login-divider-text">or</div>
+      <div class="login-divider-line"></div>
+    </div>
+
+    <!-- Email/Password Form -->
+    <div id="loginForm">
+      <div class="login-input-group">
+        <label class="login-input-label">Email</label>
+        <input type="email" class="login-input" id="loginEmail" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div class="login-input-group">
+        <label class="login-input-label">Password</label>
+        <input type="password" class="login-input" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <button class="login-submit" id="loginSubmit" onclick="handleEmailAuth()">Sign In</button>
+      <div class="login-toggle">
+        <span id="loginToggleText">Don't have an account?</span>
+        <a class="login-toggle-link" onclick="toggleAuthMode()">Sign Up</a>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div class="app">
 
@@ -749,6 +1260,39 @@
 </div>
 
 <script>
+  // ── FIREBASE INITIALIZATION ──
+  const firebaseConfig = {
+    apiKey: "AIzaSyAfz3gJfNzt1nk8pZTeKsVUvY301e9TT-M",
+    authDomain: "alpha-search-index.firebaseapp.com",
+    projectId: "alpha-search-index",
+    storageBucket: "alpha-search-index.firebasestorage.app",
+    messagingSenderId: "169073379199",
+    appId: "1:169073379199:web:555586433f3228ccc0fc4a",
+    measurementId: "G-S6GZBZNNTT"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  // ── AUTH STATE ──
+  let currentUser = null;
+  let authMode = 'signin'; // 'signin' or 'signup'
+  let hasSearched = false;
+  let searchHistory = [];
+
+  // Monitor auth state
+  auth.onAuthStateChanged(user => {
+    currentUser = user;
+    if (user) {
+      showUserMenu(user);
+      closeLoginModal();
+      loadSearchHistory();
+    } else {
+      hideUserMenu();
+    }
+  });
+
   // ── STATUS ──
   setTimeout(() => {
     document.getElementById('statusDot').className = 'status-dot live';
@@ -835,7 +1379,7 @@
 
     // Score display - handle null scores (timeouts/errors)
     const scoreDisplay = p.score !== null ? `${p.score}<span>/100</span>` : `<span style="font-size: 24px;">—</span>`;
-    const scoreLabel = p.score !== null ? 'AI Readiness Score' : 'Could Not Score';
+    const scoreLabel = p.score !== null ? 'Alpha Search Score' : 'Could Not Score';
 
     // Favicon URL
     const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
@@ -993,7 +1537,7 @@
           </div>
           <div class="score-number">
             <div class="score-big">${data.avgScore}<span>/100</span></div>
-            <div class="score-label">Avg. AI Readiness Score</div>
+            <div class="score-label">Avg. Alpha Search Score</div>
           </div>
         </div>
         <div class="score-bar-bg">
@@ -1090,6 +1634,12 @@
         const bar = document.getElementById(barId);
         if (bar) bar.style.width = data.score + '%';
       }, 100);
+
+      // Save to history if logged in
+      await saveSearchToHistory(domain, 'url', data);
+
+      // Show account prompt after first search (if not logged in)
+      setTimeout(() => showAccountPrompt(), 800);
 
     } catch (error) {
       console.error('Crawl error:', error);
@@ -1257,6 +1807,12 @@
             scrollBottom();
           }, i * 80);
         });
+
+        // Save to history if logged in
+        await saveSearchToHistory(query, 'name', data);
+
+        // Show account prompt after first search (if not logged in)
+        setTimeout(() => showAccountPrompt(), data.results.length * 80 + 1000);
       }
 
     } catch (error) {
@@ -1344,6 +1900,227 @@
   document.getElementById('searchInput').addEventListener('keydown', e => {
     if (e.key === 'Enter') handleSearch();
   });
+
+  // ── AUTH FUNCTIONS ──
+  
+  function openLoginModal() {
+    document.getElementById('loginModal').classList.add('visible');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeLoginModal() {
+    document.getElementById('loginModal').classList.remove('visible');
+    document.body.style.overflow = '';
+    clearLoginError();
+  }
+
+  function toggleAuthMode() {
+    authMode = authMode === 'signin' ? 'signup' : 'signin';
+    const submitBtn = document.getElementById('loginSubmit');
+    const toggleText = document.getElementById('loginToggleText');
+    const modalTitle = document.querySelector('.login-modal-title');
+    
+    if (authMode === 'signup') {
+      submitBtn.textContent = 'Create Account';
+      toggleText.textContent = 'Already have an account?';
+      modalTitle.textContent = 'Create an Account';
+    } else {
+      submitBtn.textContent = 'Sign In';
+      toggleText.textContent = "Don't have an account?";
+      modalTitle.textContent = 'Welcome Back';
+    }
+    clearLoginError();
+  }
+
+  async function signInWithGoogle() {
+    try {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      await auth.signInWithPopup(provider);
+      clearLoginError();
+    } catch (error) {
+      console.error('Google sign in error:', error);
+      showLoginError(error.message);
+    }
+  }
+
+  async function handleEmailAuth() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    
+    if (!email || !password) {
+      showLoginError('Please enter both email and password');
+      return;
+    }
+
+    if (password.length < 6) {
+      showLoginError('Password must be at least 6 characters');
+      return;
+    }
+
+    const submitBtn = document.getElementById('loginSubmit');
+    submitBtn.disabled = true;
+    submitBtn.textContent = authMode === 'signup' ? 'Creating...' : 'Signing in...';
+
+    try {
+      if (authMode === 'signup') {
+        await auth.createUserWithEmailAndPassword(email, password);
+      } else {
+        await auth.signInWithEmailAndPassword(email, password);
+      }
+      clearLoginError();
+      document.getElementById('loginEmail').value = '';
+      document.getElementById('loginPassword').value = '';
+    } catch (error) {
+      console.error('Email auth error:', error);
+      let message = error.message;
+      if (error.code === 'auth/email-already-in-use') {
+        message = 'This email is already registered. Try signing in instead.';
+      } else if (error.code === 'auth/user-not-found') {
+        message = 'No account found with this email. Try signing up instead.';
+      } else if (error.code === 'auth/wrong-password') {
+        message = 'Incorrect password. Please try again.';
+      } else if (error.code === 'auth/invalid-email') {
+        message = 'Invalid email address.';
+      }
+      showLoginError(message);
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = authMode === 'signup' ? 'Create Account' : 'Sign In';
+    }
+  }
+
+  function showLoginError(message) {
+    const errorEl = document.getElementById('loginError');
+    errorEl.textContent = message;
+    errorEl.classList.add('visible');
+  }
+
+  function clearLoginError() {
+    const errorEl = document.getElementById('loginError');
+    errorEl.textContent = '';
+    errorEl.classList.remove('visible');
+  }
+
+  async function logout() {
+    try {
+      await auth.signOut();
+      searchHistory = [];
+      hideUserMenu();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  }
+
+  function showUserMenu(user) {
+    const userMenu = document.getElementById('userMenu');
+    const userAvatar = document.getElementById('userAvatar');
+    
+    userMenu.classList.add('visible');
+    
+    if (user.photoURL) {
+      userAvatar.innerHTML = `<img src="${user.photoURL}" alt="${user.displayName || user.email}">`;
+    } else {
+      const initial = (user.displayName || user.email || '?')[0].toUpperCase();
+      userAvatar.textContent = initial;
+    }
+  }
+
+  function hideUserMenu() {
+    document.getElementById('userMenu').classList.remove('visible');
+    document.getElementById('userDropdown').classList.remove('visible');
+  }
+
+  function toggleUserDropdown() {
+    document.getElementById('userDropdown').classList.toggle('visible');
+  }
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    const userMenu = document.getElementById('userMenu');
+    const dropdown = document.getElementById('userDropdown');
+    if (!userMenu.contains(e.target) && dropdown.classList.contains('visible')) {
+      dropdown.classList.remove('visible');
+    }
+  });
+
+  // Close modal when clicking overlay
+  document.getElementById('loginModal').addEventListener('click', (e) => {
+    if (e.target.id === 'loginModal') {
+      closeLoginModal();
+    }
+  });
+
+  // ── SEARCH HISTORY ──
+  
+  async function saveSearchToHistory(query, type, result) {
+    if (!currentUser) return;
+    
+    try {
+      const searchData = {
+        userId: currentUser.uid,
+        query: query,
+        type: type, // 'url' or 'name'
+        result: result,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      
+      await db.collection('searchHistory').add(searchData);
+      searchHistory.unshift(searchData);
+    } catch (error) {
+      console.error('Error saving search:', error);
+    }
+  }
+
+  async function loadSearchHistory() {
+    if (!currentUser) return;
+    
+    try {
+      const snapshot = await db.collection('searchHistory')
+        .where('userId', '==', currentUser.uid)
+        .orderBy('timestamp', 'desc')
+        .limit(50)
+        .get();
+      
+      searchHistory = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+    } catch (error) {
+      console.error('Error loading history:', error);
+    }
+  }
+
+  function viewHistory() {
+    // TODO: Implement history view modal
+    alert('Search history feature coming soon!');
+    document.getElementById('userDropdown').classList.remove('visible');
+  }
+
+  // ── ACCOUNT PROMPT (after first search) ──
+  
+  function showAccountPrompt() {
+    if (currentUser || hasSearched) return;
+    
+    hasSearched = true;
+    
+    const chatArea = document.getElementById('chatArea');
+    const prompt = document.createElement('div');
+    prompt.className = 'account-prompt';
+    prompt.innerHTML = `
+      <div class="account-prompt-icon">🚀</div>
+      <div class="account-prompt-content">
+        <div class="account-prompt-title">Create an Account to Increase Your AI Rank</div>
+        <div class="account-prompt-subtitle">Track your searches, monitor your AI visibility over time, and get personalized recommendations.</div>
+      </div>
+      <button class="account-prompt-btn" onclick="openLoginModal(); this.closest('.account-prompt').remove();">
+        Create Account
+      </button>
+      <button class="account-prompt-close" onclick="this.closest('.account-prompt').remove();">×</button>
+    `;
+    
+    chatArea.appendChild(prompt);
+    scrollBottom();
+  }
 </script>
 </body>
 </html>
