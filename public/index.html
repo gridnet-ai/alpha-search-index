@@ -674,13 +674,38 @@
     }
 
     .score-number {
-      align-self: flex-end;
+      flex-shrink: 0;
+      text-align: right;
+    }
+    
+    .score-number .score-big {
+      font-size: 32px;
+    }
+    
+    .score-number .score-big span {
+      font-size: 14px;
+    }
+    
+    .score-number .score-label {
+      font-size: 9px;
     }
 
     /* Aggregate card adjustments */
     .aggregate-header {
-      flex-direction: column;
-      gap: 12px;
+      flex-direction: row; /* Keep horizontal layout */
+      align-items: flex-start;
+      gap: 8px;
+    }
+    
+    .aggregate-query {
+      font-size: 16px;
+      margin-bottom: 4px;
+      flex: 1;
+      min-width: 0; /* Allow text to wrap */
+    }
+    
+    .aggregate-sub {
+      font-size: 11px;
     }
 
     /* Collapsible card header more compact */
@@ -1384,7 +1409,7 @@
   @media (max-width: 768px) {
     .account-modal-wrap.center {
       width: calc(100% - 32px);
-      margin-bottom: 0; /* Remove gap */
+      margin-bottom: 12px; /* Add gap between account modal and search bar */
     }
 
     .account-modal-wrap.bottom {
@@ -2086,7 +2111,7 @@
           </div>
           <div class="score-number">
             <div class="score-big">${data.avgScore}<span>/100</span></div>
-            <div class="score-label">Avg. Alpha Search Score</div>
+            <div class="score-label">Alpha Search Score</div>
           </div>
         </div>
         <div class="score-bar-bg">
