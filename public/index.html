@@ -1291,30 +1291,32 @@
 
   .slide-menu-stats {
     display: flex;
-    gap: 16px;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 0;
   }
 
   .slide-menu-stat {
-    flex: 1;
-    padding: 12px;
-    border-radius: 10px;
-    background: var(--bg);
-    box-shadow: var(--neu-inset);
-    text-align: center;
-  }
-
-  .slide-menu-stat-value {
-    font-size: 18px;
-    font-weight: 600;
-    font-family: 'DM Mono', monospace;
-    color: var(--text-primary);
-    margin-bottom: 2px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
   }
 
   .slide-menu-stat-label {
-    font-size: 10px;
+    font-size: 11px;
     font-family: 'DM Mono', monospace;
     color: var(--text-tertiary);
+  }
+
+  .slide-menu-stat-value {
+    font-size: 14px;
+    font-weight: 600;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-primary);
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
@@ -1620,12 +1622,12 @@
     </div>
     <div class="slide-menu-stats" id="slideMenuStats" style="display: none;">
       <div class="slide-menu-stat">
-        <div class="slide-menu-stat-value" id="slideMenuSearches">0</div>
         <div class="slide-menu-stat-label">Searches</div>
+        <div class="slide-menu-stat-value" id="slideMenuSearches">0</div>
       </div>
       <div class="slide-menu-stat">
-        <div class="slide-menu-stat-value" id="slideMenuScore">--</div>
         <div class="slide-menu-stat-label">Alpha Search Score</div>
+        <div class="slide-menu-stat-value" id="slideMenuScore">--</div>
       </div>
     </div>
     
@@ -3024,16 +3026,53 @@
       return;
     }
     
-    // Close slide menu
-    closeSlideMenu();
+    if (!currentUser) {
+      alert('Please sign in to save your search term');
+      return;
+    }
     
-    // Trigger search with the saved term
-    const searchInput = document.getElementById('searchInput');
-    searchInput.value = term;
-    await handleSearch();
-    
-    // Clear input
-    input.value = '';
+    try {
+      // Save to user's Firestore profile (background operation)
+      await db.collection('users').doc(currentUser.uid).set({
+        savedSearchTerm: term,
+        savedSearchTermUpdatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      
+      // Trigger background search (no UI update on main screen)
+      const queryType = detectQueryType(term);
+      const endpoint = queryType === 'url' ? '/api/check' : '/api/search';
+      const body = queryType === 'url' ? { url: term } : { query: term };
+      
+      // Fire and forget - background operation
+      fetch(endpoint, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await currentUser.getIdToken()}`
+        },
+        body: JSON.stringify(body)
+      }).then(async (response) => {
+        if (response.ok) {
+          const data = await response.json();
+          // Save to search history
+          await saveSearchToHistory(term, queryType === 'url' ? 'domain' : 'name', data);
+          // Update slide menu
+          await loadSearchHistory();
+          updateSlideMenu();
+        }
+      }).catch(err => console.error('Background search error:', err));
+      
+      // Show success message
+      input.value = '';
+      input.placeholder = 'Saved! Searching in background...';
+      setTimeout(() => {
+        input.placeholder = 'Enter a name or domain...';
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Error saving search term:', error);
+      alert('Failed to save search term');
+    }
   }
   
   function toggleSavedTermDetails() {
@@ -3100,21 +3139,39 @@
         : '--';
       slideMenuScore.textContent = userScore;
       
-      // Set saved search term (most recent search)
+      // Set saved search term (load from Firestore)
       const savedTermValue = document.getElementById('savedTermValue');
       const savedTermInputWrap = document.querySelector('.saved-term-input-wrap');
       
-      if (searchHistory.length > 0) {
-        const latestSearch = searchHistory[0];
-        savedTermValue.textContent = latestSearch.query;
-        savedTermValue.setAttribute('data-score', latestSearch.alphaScore);
-        savedTermValue.setAttribute('data-grade', latestSearch.grade);
-        savedTermValue.style.display = 'block';
-        savedTermInputWrap.style.display = 'none';
-      } else {
+      // Load saved term from user's Firestore profile
+      db.collection('users').doc(user.uid).get().then(doc => {
+        if (doc.exists && doc.data().savedSearchTerm) {
+          const savedTerm = doc.data().savedSearchTerm;
+          // Find the search in history to get score/grade
+          const savedSearch = searchHistory.find(s => s.query === savedTerm);
+          
+          if (savedSearch) {
+            savedTermValue.textContent = savedTerm;
+            savedTermValue.setAttribute('data-score', savedSearch.alphaScore);
+            savedTermValue.setAttribute('data-grade', savedSearch.grade);
+            savedTermValue.style.display = 'block';
+            savedTermInputWrap.style.display = 'none';
+          } else {
+            // Term saved but not yet searched
+            savedTermValue.textContent = savedTerm + ' (searching...)';
+            savedTermValue.style.display = 'block';
+            savedTermInputWrap.style.display = 'none';
+          }
+        } else {
+          // No saved term yet
+          savedTermValue.style.display = 'none';
+          savedTermInputWrap.style.display = 'flex';
+        }
+      }).catch(err => {
+        console.error('Error loading saved term:', err);
         savedTermValue.style.display = 'none';
         savedTermInputWrap.style.display = 'flex';
-      }
+      });
       
       // Update auth button to sign out
       slideMenuAuthButton.innerHTML = `
