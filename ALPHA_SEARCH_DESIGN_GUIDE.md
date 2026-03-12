@@ -1839,7 +1839,583 @@ Every pixel, transition, and interaction is intentional. This guide serves as th
 
 ---
 
-**Document Version:** 1.0  
-**Last Updated:** March 11, 2026  
+## Authentication System Components
+
+### 18. Login Modal
+
+**Purpose:** Minimal, beautiful authentication interface
+
+**Structure:**
+```
+┌─────────────────────────────────────────┐
+│                                      × │
+│        Create an Account                │
+│   Track your searches and increase      │
+│          your AI Rank                   │
+├─────────────────────────────────────────┤
+│  [G] Continue with Google               │
+├─────────────────────────────────────────┤
+│              ─── or ───                 │
+├─────────────────────────────────────────┤
+│  EMAIL                                  │
+│  [you@example.com              ]        │
+│  PASSWORD                               │
+│  [••••••••                     ]        │
+│  [        Sign In              ]        │
+│  Don't have an account? Sign Up         │
+└─────────────────────────────────────────┘
+```
+
+**CSS:**
+```css
+.login-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(26, 28, 46, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  display: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.login-modal {
+  background: var(--bg);
+  border-radius: 20px;
+  box-shadow: var(--neu-raised), 0 20px 60px rgba(26, 28, 46, 0.2);
+  padding: 32px 28px;
+  max-width: 420px;
+  width: calc(100% - 48px);
+  margin-top: 120px;
+  transform: translateY(0);
+  opacity: 1;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+```
+
+**Animation:**
+- **Overlay:** Fades in (0.3s)
+- **Modal:** Slides down from -20px with opacity fade (0.4s)
+- **Easing:** `cubic-bezier(0.4, 0, 0.2, 1)`
+
+**Mobile Behavior:**
+- Margin-top: 120px → 80px
+- Morphs from search bar position
+
+---
+
+### 19. User Menu
+
+**Purpose:** User account access and navigation
+
+**Structure:**
+```
+┌──────┐
+│  LF  │ ← Avatar (initials or photo)
+└──────┘
+    ↓
+┌────────────────────┐
+│ 📜 Search History  │
+├────────────────────┤
+│ 🚪 Sign Out        │
+└────────────────────┘
+```
+
+**CSS:**
+```css
+.user-menu {
+  position: fixed;
+  top: 28px;
+  right: 24px;
+  z-index: 50;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--bg);
+  box-shadow: var(--neu-raised);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--accent-blue);
+}
+
+.user-dropdown {
+  position: absolute;
+  top: 52px;
+  right: 0;
+  background: var(--bg);
+  border-radius: 16px;
+  box-shadow: var(--neu-raised), 0 10px 30px rgba(26, 28, 46, 0.15);
+  padding: 12px;
+  min-width: 200px;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: all 0.3s ease;
+}
+
+.user-dropdown.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+```
+
+**States:**
+- **Hidden:** `display: none`
+- **Visible:** Fades in with slide-down animation
+- **Hover:** Avatar scales to 1.05
+
+**Mobile:**
+- Top: 28px → 16px
+- Right: 24px → 16px
+- Avatar: 40px → 36px
+
+---
+
+### 20. Account Prompt
+
+**Purpose:** Encourage account creation after first search
+
+**Structure:**
+```
+┌─────────────────────────────────────────┐
+│ 🚀  Create an Account to Increase Your  │
+│     AI Rank                             │
+│     Track your searches, monitor your   │
+│     AI visibility over time...          │
+│     [Create Account]                 × │
+└─────────────────────────────────────────┘
+```
+
+**CSS:**
+```css
+.account-prompt {
+  background: linear-gradient(135deg, rgba(74,143,255,0.08), rgba(52,199,138,0.08));
+  border: 1px solid rgba(74,143,255,0.2);
+  border-radius: 16px;
+  padding: 20px 24px;
+  margin: 16px 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.account-prompt-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.account-prompt-btn {
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: none;
+  background: var(--accent-blue);
+  color: white;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 3px 3px 8px rgba(74,143,255,0.35);
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+```
+
+**Trigger:**
+- Appears 800ms after first search completes
+- Only shows if user is not logged in
+- Only shows once per session (`hasSearched` flag)
+
+**Mobile:**
+- Flex-direction: row → column
+- Text-align: center
+- Button: width 100%
+
+---
+
+### 21. Login Buttons
+
+**Purpose:** Authentication actions
+
+**Types:**
+
+#### Google Sign-In Button
+```css
+.login-btn.google {
+  background: white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.login-btn.google:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+```
+
+**Characteristics:**
+- White background (not neomorphic)
+- Google logo SVG (4-color)
+- Hover: Lifts with enhanced shadow
+
+#### Email Submit Button
+```css
+.login-submit {
+  width: 100%;
+  padding: 14px 24px;
+  border-radius: 12px;
+  border: none;
+  background: var(--accent-blue);
+  color: white;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 3px 3px 8px rgba(74,143,255,0.35);
+  transition: all 0.2s;
+}
+```
+
+**States:**
+- **Default:** Blue background, white text
+- **Hover:** Darker blue, lifts 1px
+- **Disabled:** 60% opacity, no transform
+
+---
+
+### 22. Login Input Fields
+
+**Purpose:** Email and password entry
+
+**CSS:**
+```css
+.login-input {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: none;
+  background: var(--bg);
+  box-shadow: var(--neu-inset);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  color: var(--text-primary);
+  outline: none;
+  transition: all 0.2s;
+}
+
+.login-input:focus {
+  box-shadow: inset 3px 3px 8px #c8cad4, inset -3px -3px 8px #ffffff;
+}
+```
+
+**Characteristics:**
+- Neomorphic inset shadow
+- Focus: Deeper inset shadow
+- Placeholder: Tertiary text color
+- Autocomplete: Enabled for email/password
+
+---
+
+### 23. Login Error Message
+
+**Purpose:** Display authentication errors
+
+**CSS:**
+```css
+.login-error {
+  background: rgba(198, 40, 40, 0.1);
+  border: 1px solid rgba(198, 40, 40, 0.2);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  color: #c62828;
+  display: none;
+}
+
+.login-error.visible {
+  display: block;
+}
+```
+
+**Error Messages:**
+- `auth/email-already-in-use`: "This email is already registered. Try signing in instead."
+- `auth/user-not-found`: "No account found with this email. Try signing up instead."
+- `auth/wrong-password`: "Incorrect password. Please try again."
+- `auth/invalid-email`: "Invalid email address."
+
+---
+
+## Updated Metric Naming
+
+### Terminology Change
+
+**Old:** "AI Readiness Score"  
+**New:** "Alpha Search Score"
+
+**Rationale:**
+- Stronger brand association
+- Clearer ownership of the metric
+- More memorable and shareable
+
+### Updated Labels
+
+| Location | Old Label | New Label |
+|----------|-----------|-----------|
+| **Score Card** | "AI Readiness Score" | "Alpha Search Score" |
+| **Aggregate Card** | "Avg. AI Readiness Score" | "Avg. Alpha Search Score" |
+| **Narrative Text** | "AI readiness" | "Alpha Search score" |
+
+---
+
+## Mobile Zoom Fix
+
+### Issue
+iOS Safari automatically zooms in when focusing on input fields with font-size < 16px, creating a jarring user experience.
+
+### Solution
+Updated viewport meta tag:
+
+```html
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+```
+
+**Properties:**
+- `maximum-scale=1.0`: Prevents zoom beyond 100%
+- `user-scalable=no`: Disables pinch-to-zoom
+
+**Trade-off:**
+- Improves UX for form interaction
+- Reduces accessibility for users who need zoom
+- Acceptable for search-focused app with large, readable text
+
+---
+
+## Authentication Flow
+
+### User Journey
+
+```
+┌─────────────────────────────────────────┐
+│ 1. User visits site                     │
+│    → Hero state, no login visible       │
+└─────────────────────────────────────────┘
+              ↓
+┌─────────────────────────────────────────┐
+│ 2. User performs first search           │
+│    → Layout shifts to conversation      │
+│    → Results appear                     │
+└─────────────────────────────────────────┘
+              ↓
+┌─────────────────────────────────────────┐
+│ 3. Account prompt appears (800ms delay) │
+│    → "Create an Account to Increase     │
+│       Your AI Rank"                     │
+└─────────────────────────────────────────┘
+              ↓
+┌─────────────────────────────────────────┐
+│ 4. User clicks "Create Account"         │
+│    → Login modal morphs from top        │
+│    → Backdrop blur appears              │
+└─────────────────────────────────────────┘
+              ↓
+┌─────────────────────────────────────────┐
+│ 5. User signs in (Google or Email)      │
+│    → Modal closes                       │
+│    → User avatar appears top-right      │
+└─────────────────────────────────────────┘
+              ↓
+┌─────────────────────────────────────────┐
+│ 6. Future searches auto-save to history │
+│    → Accessible via user menu           │
+└─────────────────────────────────────────┘
+```
+
+### State Management
+
+```javascript
+// Global state
+let currentUser = null;           // Firebase User object or null
+let authMode = 'signin';          // 'signin' or 'signup'
+let hasSearched = false;          // Prevents duplicate prompts
+let searchHistory = [];           // Cached user history
+
+// Auth state listener
+auth.onAuthStateChanged(user => {
+  currentUser = user;
+  if (user) {
+    showUserMenu(user);
+    closeLoginModal();
+    loadSearchHistory();
+  } else {
+    hideUserMenu();
+  }
+});
+```
+
+---
+
+## Firestore Integration
+
+### Search History Schema
+
+```javascript
+{
+  userId: "string",              // Firebase Auth UID
+  query: "string",               // "example.com" or "John Doe"
+  type: "url" | "name",         // Search type
+  result: {                      // Full result object
+    score: number,
+    grade: string,
+    machineProfile: { ... },
+    // ... etc
+  },
+  timestamp: Timestamp           // Server timestamp
+}
+```
+
+### Security Rules
+
+```javascript
+match /searchHistory/{historyId} {
+  allow read: if request.auth != null && 
+                 request.auth.uid == resource.data.userId;
+  allow create: if request.auth != null && 
+                   request.auth.uid == request.resource.data.userId;
+  allow update, delete: if request.auth != null && 
+                           request.auth.uid == resource.data.userId;
+}
+```
+
+**Principles:**
+- **User Isolation:** Users can only access their own data
+- **Authenticated Only:** No anonymous access
+- **Append-Only (effectively):** Users rarely need to update/delete
+
+---
+
+## Implementation Checklist
+
+### New Feature: Authentication Modal
+
+When adding a new auth-related feature:
+
+- [ ] Use `.login-modal-overlay` for backdrop
+- [ ] Apply `backdrop-filter: blur(4px)` for depth
+- [ ] Animate with `opacity` and `transform`
+- [ ] Close on overlay click (not modal click)
+- [ ] Close on Escape key (future enhancement)
+- [ ] Disable body scroll when open
+- [ ] Clear form inputs on close
+- [ ] Handle Firebase auth errors gracefully
+
+---
+
+### New Feature: User Menu Dropdown
+
+When adding a new dropdown menu:
+
+- [ ] Position: `absolute` relative to trigger
+- [ ] Animate: `opacity` + `translateY(-10px)` → `translateY(0)`
+- [ ] Close on outside click
+- [ ] Close on item selection
+- [ ] Use neomorphic shadow + depth shadow
+- [ ] Minimum width: 200px
+- [ ] Border radius: 16px
+- [ ] Padding: 12px
+
+---
+
+## Design Tokens (Updated)
+
+```css
+:root {
+  /* Colors (unchanged) */
+  --bg: #e8eaf0;
+  --shadow-light: #ffffff;
+  --shadow-dark: #c8cad4;
+  --accent-blue: #4a8fff;
+  --accent-green: #34c78a;
+  --accent-orange: #f0704a;
+  --text-primary: #1a1c2e;
+  --text-secondary: #5a5f7a;
+  --text-tertiary: #8890aa;
+
+  /* Shadows (unchanged) */
+  --neu-raised: 6px 6px 14px #c8cad4, -6px -6px 14px #ffffff;
+  --neu-inset: inset 4px 4px 10px #c8cad4, inset -4px -4px 10px #ffffff;
+  --neu-flat: 2px 2px 6px #c8cad4, -2px -2px 6px #ffffff;
+  --neu-sm: 3px 3px 8px #c8cad4, -3px -3px 8px #ffffff;
+  
+  /* New: Modal backdrop */
+  --modal-backdrop: rgba(26, 28, 46, 0.4);
+  
+  /* New: Error colors */
+  --error-bg: rgba(198, 40, 40, 0.1);
+  --error-border: rgba(198, 40, 40, 0.2);
+  --error-text: #c62828;
+}
+```
+
+---
+
+## Accessibility Updates
+
+### Keyboard Navigation (Future Enhancement)
+
+- **Tab:** Navigate through form fields, buttons
+- **Enter:** Submit form, trigger buttons
+- **Escape:** Close modal
+- **Space:** Toggle checkboxes (future)
+
+### Screen Reader Support
+
+```html
+<!-- Add ARIA labels -->
+<button aria-label="Close login modal" class="login-modal-close">×</button>
+<input aria-label="Email address" type="email" class="login-input" placeholder="you@example.com">
+<div role="alert" class="login-error" id="loginError"></div>
+```
+
+### Focus Management
+
+- When modal opens, focus first input field
+- When modal closes, return focus to trigger button
+- Trap focus within modal (prevent tabbing to background)
+
+---
+
+## Future Enhancements
+
+### Authentication
+1. **Social Providers:** GitHub, Twitter, LinkedIn
+2. **Passwordless:** Email magic links
+3. **2FA:** Two-factor authentication
+4. **Profile Management:** Edit name, avatar, preferences
+
+### Search History
+1. **History Modal:** Full-screen view of all searches
+2. **Filters:** By date, type, score range
+3. **Export:** Download as JSON/CSV
+4. **Delete:** Remove individual searches
+
+### AI Rank Dashboard
+1. **Personal Score:** Track your own AI visibility
+2. **Trends:** Chart score changes over time
+3. **Recommendations:** Personalized improvement tips
+4. **Benchmarks:** Compare to industry averages
+
+---
+
+**Document Version:** 1.1  
+**Last Updated:** March 11, 2026 (Evening)  
 **Maintained By:** Gridnet Design Team  
 **Contact:** design@gridnetai.com
+
+**Changelog:**
+- **v1.1** (March 11, 2026): Added authentication system components, updated metric naming, mobile zoom fix
+- **v1.0** (March 11, 2026): Initial comprehensive design guide
