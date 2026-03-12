@@ -1509,7 +1509,7 @@
   <div class="chat-area" id="chatArea"></div>
 
   <!-- ACCOUNT MODAL (stacks above search bar) -->
-  <div class="account-modal-wrap center" id="accountModalWrap">
+  <div class="account-modal-wrap center visible" id="accountModalWrap">
     <div class="account-modal-inner">
       <div class="account-modal" id="accountModal">
         <div class="account-narrative">
@@ -1590,15 +1590,17 @@
       loadSearchHistory();
       updateSlideMenu();
     } else {
-      // Don't hide modal, just keep it in logged-out state
+      // Show modal in logged-out state
       const accountModalWrap = document.getElementById('accountModalWrap');
       const accountModal = document.getElementById('accountModal');
       if (accountModalWrap) {
+        accountModalWrap.classList.add('visible');
         accountModalWrap.classList.remove('logged-in');
       }
       if (accountModal) {
         accountModal.classList.remove('logged-in');
       }
+      updateAccountNarrative();
       updateSlideMenu();
     }
   });
@@ -1608,6 +1610,9 @@
     document.getElementById('statusDot').className = 'status-dot live';
     document.getElementById('statusText').textContent = 'Index live · 2.4M domains';
   }, 1600);
+
+  // ── INITIALIZE ACCOUNT NARRATIVE ──
+  updateAccountNarrative();
 
   // ── STATE ──
   let shifted = false;
