@@ -1002,7 +1002,7 @@
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  /* Trust narrative on the left */
+  /* Trust narrative on the left - plain text, no box */
   .account-narrative {
     flex: 1;
     display: flex;
@@ -1010,9 +1010,10 @@
   }
 
   .account-narrative-text {
-    font-size: 12px;
-    color: var(--text-secondary);
+    font-size: 13px;
+    color: #000000;
     line-height: 1.4;
+    font-weight: 400;
   }
 
   /* The actual button inside the modal */
@@ -1398,6 +1399,7 @@
 
     .account-narrative-text {
       font-size: 11px;
+      color: #000000;
     }
 
     .account-cta-button {
