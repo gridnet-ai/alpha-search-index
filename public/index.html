@@ -1680,21 +1680,10 @@
   }, 1600);
 
   function updateAIRecordsCounter() {
-    let formatted;
-    if (aiRecordsCount >= 1000000) {
-      formatted = (aiRecordsCount / 1000000).toFixed(2) + 'M';
-    } else if (aiRecordsCount >= 1000) {
-      formatted = (aiRecordsCount / 1000).toFixed(1) + 'K';
-    } else {
-      formatted = Math.floor(aiRecordsCount).toString();
-    }
+    // Format with commas for readability
+    const countFormatted = Math.floor(aiRecordsCount).toLocaleString('en-US');
     
-    // Format increment per second
-    const incrementFormatted = incrementPerSecond >= 1000 
-      ? (incrementPerSecond / 1000).toFixed(1) + 'K'
-      : Math.floor(incrementPerSecond).toFixed(0);
-    
-    document.getElementById('statusText').textContent = `${formatted} AI Records · +${incrementFormatted}/s`;
+    document.getElementById('statusText').textContent = `AI Records Indexed · ${countFormatted}`;
   }
 
   // ── INITIALIZE ACCOUNT NARRATIVE ──
