@@ -19,7 +19,7 @@ async function getPool() {
       instanceConnectionName:
         process.env.CLOUD_SQL_INSTANCE ||
         'alpha-search-index:us-central1:alpha-search-index-db',
-      ipType: 'PRIVATE', // Use private IP for better performance and security
+      ipType: 'PUBLIC', // Use public IP for Cloud Functions/Run without VPC
     });
 
     // Create connection pool

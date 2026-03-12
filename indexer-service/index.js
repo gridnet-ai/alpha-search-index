@@ -26,7 +26,7 @@ async function getPool() {
   const clientOpts = await connector.getOptions({
     instanceConnectionName: process.env.CLOUD_SQL_INSTANCE ||
       'alpha-search-index:us-central1:alpha-search-index-db',
-    ipType: 'PRIVATE',
+    ipType: 'PUBLIC',
   });
 
   pool = new pg.Pool({
