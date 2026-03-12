@@ -3145,7 +3145,7 @@
       // Save to user's Firestore profile (background operation)
       await db.collection('users').doc(currentUser.uid).set({
         savedSearchTerm: term,
-        savedSearchTermUpdatedAt: admin.firestore.FieldValue.serverTimestamp()
+        savedSearchTermUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
       
       // Trigger background search (no UI update on main screen)
