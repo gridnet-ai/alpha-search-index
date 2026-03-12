@@ -957,28 +957,33 @@
 
   /* The actual button inside the modal */
   .account-cta-button {
-    padding: 10px 20px;
-    border-radius: 10px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
     border: none;
-    background: var(--accent-blue);
-    color: white;
+    background: var(--text-primary);
+    color: var(--bg);
     font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    font-weight: 500;
+    font-size: 18px;
+    font-weight: 700;
     cursor: pointer;
-    box-shadow: 3px 3px 8px rgba(74,143,255,0.35);
+    box-shadow: var(--neu-raised);
     transition: all 0.2s;
-    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
+    padding: 0;
   }
 
   .account-cta-button:hover {
-    background: #3d7fee;
-    transform: translateY(-1px);
+    background: var(--text-primary);
+    transform: scale(1.05);
+    box-shadow: 6px 8px 16px #c8cad4, -6px -8px 16px #ffffff;
   }
 
   .account-cta-button:active {
-    transform: translateY(0);
+    transform: scale(0.98);
   }
 
   /* Logged in state - transforms to square avatar */
@@ -1365,8 +1370,9 @@
     }
 
     .account-cta-button {
-      width: 100%;
-      font-size: 12px;
+      width: 36px;
+      height: 36px;
+      font-size: 16px;
     }
 
     .account-modal.logged-in {
@@ -1515,7 +1521,11 @@
         <div class="account-narrative">
           <span class="account-narrative-text" id="accountNarrativeText">Track your searches and increase your AI visibility over time</span>
         </div>
-        <button class="account-cta-button" id="accountCtaButton" onclick="openLoginModal()">Sign In</button>
+        <button class="account-cta-button" id="accountCtaButton" onclick="openLoginModal()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+          </svg>
+        </button>
         <div class="account-avatar" id="accountAvatar" onclick="handleAvatarClick()"></div>
       </div>
       <div class="account-dropdown" id="accountDropdown">
