@@ -21,22 +21,40 @@ let pool = null;
 async function getPool() {
   if (pool) return pool;
 
-  // Direct connection using public IP (simpler for development)
-  // For production, consider using Cloud SQL Proxy or VPC connector
-  pool = new pg.Pool({
+  const config = {
     host: process.env.CLOUD_SQL_HOST || '35.188.95.41', // Public IP
     port: 5432,
     user: process.env.CLOUD_SQL_USER || 'alpha_user',
     password: process.env.CLOUD_SQL_PASSWORD,
     database: process.env.CLOUD_SQL_DATABASE || 'alpha_search',
-    max: 20,
+    max: 5, // Reduced pool size for Cloud Run
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 10000,
-    ssl: false, // Cloud SQL doesn't require SSL for authorized networks
+    connectionTimeoutMillis: 15000, // Increased timeout
+    ssl: { rejectUnauthorized: false }, // Allow self-signed certs
+  };
+
+  console.log('Creating database pool with config:', {
+    host: config.host,
+    port: config.port,
+    user: config.user,
+    database: config.database,
   });
 
+  pool = new pg.Pool(config);
+
   pool.on('error', (err) => console.error('Pool error:', err));
-  console.log('Database connection pool created');
+  pool.on('connect', () => console.log('Database client connected'));
+  
+  // Test the connection
+  try {
+    const client = await pool.connect();
+    console.log('Database connection test successful');
+    client.release();
+  } catch (err) {
+    console.error('Database connection test failed:', err);
+    throw err;
+  }
+  
   return pool;
 }
 
