@@ -1609,13 +1609,6 @@
     document.getElementById('statusText').textContent = 'Index live · 2.4M domains';
   }, 1600);
 
-  // ── SHOW LOGIN MODAL ON PAGE LOAD (if not logged in) ──
-  setTimeout(() => {
-    if (!currentUser) {
-      openLoginModal();
-    }
-  }, 2000);
-
   // ── STATE ──
   let shifted = false;
 
