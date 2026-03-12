@@ -781,7 +781,7 @@
     bottom: 0;
     background: rgba(26, 28, 46, 0.4);
     backdrop-filter: blur(4px);
-    z-index: 5; /* Behind search bar (z-index: 10) */
+    z-index: 15; /* Below search bar (z-index: 20) but above account modal */
     display: none;
     opacity: 0;
     transition: opacity 0.3s ease;
@@ -796,40 +796,24 @@
 
   .login-modal {
     width: 240px;
+    height: 150px;
     background: var(--bg);
     text-align: center;
     border: 12px solid var(--bg);
     border-radius: 20px;
     box-shadow: inset 5px 5px 10px #bbb, inset -5px -5px 10px #fff;
-    transition: all 0.5s ease;
+    transition: height 0.5s ease;
     padding: 0;
     position: relative;
     overflow: hidden;
   }
 
-  .login-modal-close {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: var(--bg);
-    box-shadow: 4px 4px 8px #ddd, -4px -4px 8px #fff;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    color: var(--text-tertiary);
-    transition: all 0.2s;
-    z-index: 10;
+  .login-modal:hover {
+    height: 280px;
   }
 
-  .login-modal-close:hover {
-    transform: scale(1.1);
-    color: var(--text-primary);
+  .login-modal-close {
+    display: none;
   }
 
   .login-icon {
@@ -850,9 +834,15 @@
     color: #999;
     background: var(--bg);
     padding: 20px;
-    margin: 0;
-    border-radius: 0;
-    box-shadow: none;
+    margin: 0 20px;
+    border-radius: 8px;
+    box-shadow: 8px 8px 10px #ddd, -8px -8px 10px #fff;
+    transform: translateY(-80px) scale(0);
+    transition: all 0.5s;
+  }
+
+  .login-modal:hover .login-content {
+    transform: translateY(0) scale(1);
   }
 
   .login-modal-title {
@@ -1548,10 +1538,8 @@
 </div>
 
 <!-- LOGIN MODAL -->
-<div class="login-modal-overlay" id="loginModal">
+<div class="login-modal-overlay" id="loginModal" onclick="if(event.target.id === 'loginModal') closeLoginModal()">
   <div class="login-modal">
-    <button class="login-modal-close" onclick="closeLoginModal()">×</button>
-    
     <div class="login-icon">
       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
@@ -2582,13 +2570,6 @@
     const dropdown = document.getElementById('accountDropdown');
     if (accountModalWrap && !accountModalWrap.contains(e.target) && dropdown.classList.contains('visible')) {
       dropdown.classList.remove('visible');
-    }
-  });
-
-  // Close modal when clicking overlay
-  document.getElementById('loginModal').addEventListener('click', (e) => {
-    if (e.target.id === 'loginModal') {
-      closeLoginModal();
     }
   });
 
