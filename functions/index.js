@@ -9,6 +9,12 @@ const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const { normalizeDomain, extractDomain, crawlDomain, getGrade } = require('./crawler');
 const { googleSearch } = require('./scraper');
+const { verifyToken, attachUser } = require('./auth');
+const { createUserProfile, getUserProfile, incrementSearchCount } = require('./db/users');
+const { saveSearchToHistory, getUserSearchHistory, saveAiRecord, getUserSavedRecords, removeSavedRecord } = require('./db/searchHistory');
+const { queryIndex, searchIndex, upsertAiRecord, addToDiscoveryQueue } = require('./db/sql');
+const { saveRawCrawl } = require('./db/storage');
+const { dualWriteDomainResult, dualWritePersonResult } = require('./api-extensions');
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -44,9 +50,19 @@ exports.apiHandler = functions
   const path = req.path;
   
   if ((path === '/check' || path === '/api/check') && req.method === 'POST') {
-    await handleCheck(req, res);
+    await attachUser(req, res, () => handleCheck(req, res));
   } else if ((path === '/search' || path === '/api/search') && req.method === 'POST') {
-    await handleNameSearch(req, res);
+    await attachUser(req, res, () => handleNameSearch(req, res));
+  } else if ((path === '/user/profile' || path === '/api/user/profile') && req.method === 'GET') {
+    await verifyToken(req, res, () => handleGetUserProfile(req, res));
+  } else if ((path === '/user/history' || path === '/api/user/history') && req.method === 'GET') {
+    await verifyToken(req, res, () => handleGetUserHistory(req, res));
+  } else if ((path === '/user/saved' || path === '/api/user/saved') && req.method === 'GET') {
+    await verifyToken(req, res, () => handleGetUserSaved(req, res));
+  } else if ((path === '/user/saved' || path === '/api/user/saved') && req.method === 'POST') {
+    await verifyToken(req, res, () => handleSaveRecord(req, res));
+  } else if ((path === '/user/saved' || path === '/api/user/saved') && req.method === 'DELETE') {
+    await verifyToken(req, res, () => handleDeleteSaved(req, res));
   } else {
     res.status(404).json({ error: 'Not found' });
   }
@@ -142,6 +158,9 @@ async function handleCheck(req, res) {
     
     // Write to Firestore
     await docRef.set(firestoreData, { merge: true });
+    
+    // Dual-write to Cloud SQL + GCS (best-effort, non-blocking)
+    await dualWriteDomainResult(domain, crawlResult, req);
     
     console.log(`Crawl complete for ${domain}: ${crawlResult.score}/100 (${crawlResult.grade})`);
     
@@ -427,8 +446,9 @@ async function handleNameSearch(req, res) {
     );
     const { grade, gradeClass } = getGrade(avgScore);
     
-    // TODO: Step 6: Store detailed search metadata (skipping for now)
-    // Will implement after scores are displaying correctly
+    // Step 6: Dual-write to Cloud SQL + GCS (best-effort, non-blocking)
+    const searchResult = { avgScore, grade, gradeClass, results };
+    await dualWritePersonResult(query, pages, searchResult, req);
     
     console.log(`Name search complete: ${results.length} pages, avg score ${avgScore}`);
     
@@ -461,4 +481,95 @@ async function handleNameSearch(req, res) {
     });
   }
 }
+
+
+
+/**
+ * GET /api/index/query
+ * Query the alpha_search_index unified view
+ * 
+ * Query params:
+ * - type: entity type (domain, person, product, etc.)
+ * - id: entity ID (e.g., stripe.com, Sam Altman)
+ * - q: full-text search query
+ * - limit: max results (default 20)
+ */
+async function handleIndexQuery(req, res) {
+  try {
+    const { type, id, q, limit } = req.query;
+    
+    // Query by type and ID
+    if (type && id) {
+      console.log(`Querying index: ${type}:${id}`);
+      
+      // Try Cloud SQL first (if configured)
+      try {
+        const result = await queryIndex(type, id);
+        
+        if (result) {
+          return res.json({
+            success: true,
+            source: 'cloud_sql',
+            result
+          });
+        }
+      } catch (sqlError) {
+        console.error('Cloud SQL query failed, falling back to Firestore:', sqlError.message);
+      }
+      
+      // Fallback to Firestore for domains
+      if (type === 'domain') {
+        const cached = await getCachedResult(id);
+        if (cached) {
+          return res.json({
+            success: true,
+            source: 'firestore',
+            result: cached
+          });
+        }
+      }
+      
+      return res.status(404).json({ 
+        error: 'Record not found',
+        message: `No AI Record found for ${type}:${id}` 
+      });
+    }
+    
+    // Full-text search
+    if (q) {
+      console.log(`Searching index: "${q}" (type: ${type || 'all'})`);
+      
+      try {
+        const results = await searchIndex(q, type, parseInt(limit) || 20);
+        
+        return res.json({
+          success: true,
+          source: 'cloud_sql',
+          query: q,
+          count: results.length,
+          results
+        });
+      } catch (sqlError) {
+        console.error('Cloud SQL search failed:', sqlError.message);
+        return res.status(500).json({ 
+          error: 'Search failed',
+          message: sqlError.message 
+        });
+      }
+    }
+    
+    // Invalid request
+    return res.status(400).json({ 
+      error: 'Invalid query parameters',
+      message: 'Provide either (type + id) or (q) parameter' 
+    });
+    
+  } catch (error) {
+    console.error('Error in /api/index/query:', error);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+
+
 

@@ -29,7 +29,30 @@ service cloud.firestore {
       allow update, delete: if false;
     }
     
-    // Search history - users can only read/write their own history
+    // User profiles - users can only read/write their own profile
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && request.auth.uid == userId;
+      allow delete: if false; // Profiles cannot be deleted via client
+      
+      // User search history - subcollection
+      match /searches/{searchId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow create: if request.auth != null && request.auth.uid == userId;
+        allow update, delete: if false; // History is append-only
+      }
+      
+      // User saved records - subcollection
+      match /saved/{recordId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow create: if request.auth != null && request.auth.uid == userId;
+        allow delete: if request.auth != null && request.auth.uid == userId;
+        allow update: if false;
+      }
+    }
+    
+    // Legacy search history - deprecated, keeping for backward compatibility
     match /searchHistory/{historyId} {
       allow read: if request.auth != null && request.auth.uid == resource.data.userId;
       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
