@@ -12,9 +12,6 @@ const { googleSearch } = require('./scraper');
 const { verifyToken, attachUser } = require('./auth');
 const { createUserProfile, getUserProfile, incrementSearchCount } = require('./db/users');
 const { saveSearchToHistory, getUserSearchHistory, saveAiRecord, getUserSavedRecords, removeSavedRecord } = require('./db/searchHistory');
-const { queryIndex, searchIndex, upsertAiRecord, addToDiscoveryQueue } = require('./db/sql');
-const { saveRawCrawl } = require('./db/storage');
-const { dualWriteDomainResult, dualWritePersonResult } = require('./api-extensions');
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -158,9 +155,6 @@ async function handleCheck(req, res) {
     
     // Write to Firestore
     await docRef.set(firestoreData, { merge: true });
-    
-    // Dual-write to Cloud SQL + GCS (best-effort, non-blocking)
-    await dualWriteDomainResult(domain, crawlResult, req);
     
     console.log(`Crawl complete for ${domain}: ${crawlResult.score}/100 (${crawlResult.grade})`);
     
@@ -446,9 +440,8 @@ async function handleNameSearch(req, res) {
     );
     const { grade, gradeClass } = getGrade(avgScore);
     
-    // Step 6: Dual-write to Cloud SQL + GCS (best-effort, non-blocking)
-    const searchResult = { avgScore, grade, gradeClass, results };
-    await dualWritePersonResult(query, pages, searchResult, req);
+    // TODO: Step 6: Store detailed search metadata (skipping for now)
+    // Will implement after scores are displaying correctly
     
     console.log(`Name search complete: ${results.length} pages, avg score ${avgScore}`);
     
@@ -482,94 +475,134 @@ async function handleNameSearch(req, res) {
   }
 }
 
-
+// ============================================================================
+// USER API ENDPOINTS
+// ============================================================================
 
 /**
- * GET /api/index/query
- * Query the alpha_search_index unified view
- * 
- * Query params:
- * - type: entity type (domain, person, product, etc.)
- * - id: entity ID (e.g., stripe.com, Sam Altman)
- * - q: full-text search query
- * - limit: max results (default 20)
+ * GET /api/user/profile
+ * Get or create user profile
  */
-async function handleIndexQuery(req, res) {
+async function handleGetUserProfile(req, res) {
   try {
-    const { type, id, q, limit } = req.query;
+    const uid = req.user.uid;
     
-    // Query by type and ID
-    if (type && id) {
-      console.log(`Querying index: ${type}:${id}`);
-      
-      // Try Cloud SQL first (if configured)
-      try {
-        const result = await queryIndex(type, id);
-        
-        if (result) {
-          return res.json({
-            success: true,
-            source: 'cloud_sql',
-            result
-          });
-        }
-      } catch (sqlError) {
-        console.error('Cloud SQL query failed, falling back to Firestore:', sqlError.message);
-      }
-      
-      // Fallback to Firestore for domains
-      if (type === 'domain') {
-        const cached = await getCachedResult(id);
-        if (cached) {
-          return res.json({
-            success: true,
-            source: 'firestore',
-            result: cached
-          });
-        }
-      }
-      
-      return res.status(404).json({ 
-        error: 'Record not found',
-        message: `No AI Record found for ${type}:${id}` 
+    // Get existing profile
+    let profile = await getUserProfile(uid);
+    
+    // Create profile if doesn't exist
+    if (!profile) {
+      await createUserProfile(uid, {
+        email: req.user.email,
+        displayName: req.user.name,
+        photoURL: req.user.picture
       });
+      profile = await getUserProfile(uid);
     }
     
-    // Full-text search
-    if (q) {
-      console.log(`Searching index: "${q}" (type: ${type || 'all'})`);
-      
-      try {
-        const results = await searchIndex(q, type, parseInt(limit) || 20);
-        
-        return res.json({
-          success: true,
-          source: 'cloud_sql',
-          query: q,
-          count: results.length,
-          results
-        });
-      } catch (sqlError) {
-        console.error('Cloud SQL search failed:', sqlError.message);
-        return res.status(500).json({ 
-          error: 'Search failed',
-          message: sqlError.message 
-        });
-      }
-    }
-    
-    // Invalid request
-    return res.status(400).json({ 
-      error: 'Invalid query parameters',
-      message: 'Provide either (type + id) or (q) parameter' 
-    });
-    
+    res.json({ success: true, profile });
   } catch (error) {
-    console.error('Error in /api/index/query:', error);
+    console.error('Error in /api/user/profile:', error);
     res.status(500).json({ error: error.message });
   }
 }
 
+/**
+ * GET /api/user/history
+ * Get user's search history
+ */
+async function handleGetUserHistory(req, res) {
+  try {
+    const uid = req.user.uid;
+    const limit = parseInt(req.query.limit) || 50;
+    
+    const history = await getUserSearchHistory(uid, limit);
+    
+    res.json({ 
+      success: true, 
+      count: history.length,
+      history 
+    });
+  } catch (error) {
+    console.error('Error in /api/user/history:', error);
+    res.status(500).json({ error: error.message });
+  }
+}
 
+/**
+ * GET /api/user/saved
+ * Get user's saved AI Records
+ */
+async function handleGetUserSaved(req, res) {
+  try {
+    const uid = req.user.uid;
+    const limit = parseInt(req.query.limit) || 100;
+    
+    const saved = await getUserSavedRecords(uid, limit);
+    
+    res.json({ 
+      success: true, 
+      count: saved.length,
+      saved 
+    });
+  } catch (error) {
+    console.error('Error in /api/user/saved:', error);
+    res.status(500).json({ error: error.message });
+  }
+}
 
+/**
+ * POST /api/user/saved
+ * Save an AI Record to user's collection
+ */
+async function handleSaveRecord(req, res) {
+  try {
+    const uid = req.user.uid;
+    const { entityType, entityId, alphaScore, grade } = req.body;
+    
+    if (!entityType || !entityId) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
+    const recordId = await saveAiRecord(uid, {
+      entityType,
+      entityId,
+      alphaScore,
+      grade
+    });
+    
+    res.json({ 
+      success: true, 
+      recordId,
+      message: 'Record saved successfully' 
+    });
+  } catch (error) {
+    console.error('Error in POST /api/user/saved:', error);
+    res.status(500).json({ error: error.message });
+  }
+}
 
+/**
+ * DELETE /api/user/saved
+ * Remove a saved AI Record
+ */
+async function handleDeleteSaved(req, res) {
+  try {
+    const uid = req.user.uid;
+    const { recordId } = req.body;
+    
+    if (!recordId) {
+      return res.status(400).json({ error: 'Missing recordId' });
+    }
+    
+    await removeSavedRecord(uid, recordId);
+    
+    res.json({ 
+      success: true,
+      message: 'Record removed successfully' 
+    });
+  } catch (error) {
+    console.error('Error in DELETE /api/user/saved:', error);
+    res.status(500).json({ error: error.message });
+  }
+}

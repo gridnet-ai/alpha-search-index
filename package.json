@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "serve": "firebase emulators:start --only functions,hosting,firestore",
+    "serve:static": "npx --yes serve public -l 5020",
     "deploy": "firebase deploy",
     "deploy:hosting": "firebase deploy --only hosting",
     "deploy:functions": "firebase deploy --only functions",

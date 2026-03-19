@@ -59,6 +59,12 @@ service cloud.firestore {
       allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
     }
     
+    // Alpha Pages - one doc per user, owner can read/write
+    match /alphapages/{userId} {
+      allow read, create, update: if request.auth != null && request.auth.uid == userId;
+      allow delete: if false;
+    }
+
     // System counters - read by anyone, write by anyone (for global counter)
     match /system/{docId} {
       allow read: if true;

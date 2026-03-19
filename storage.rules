@@ -1,0 +1,10 @@
+rules_version = '2';
+
+// Alpha Page assets: each user can read/write only their own folder
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /alphapages/{userId}/{allPaths=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
