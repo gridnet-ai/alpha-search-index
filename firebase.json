@@ -11,6 +11,10 @@
       {
         "source": "/api/**",
         "function": "apiHandler"
+      },
+      {
+        "source": "/p/**",
+        "destination": "/alpha-public.html"
       }
     ]
   },

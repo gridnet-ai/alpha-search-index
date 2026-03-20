@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alpha Page</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <style>
+    :root { --bg: #e8eaf0; --text: #1a1c2e; --muted: #5a5f7a; --accent: #2563eb; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, Segoe UI, Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .wrap { max-width: 560px; margin: 0 auto; padding: 24px 16px 48px; }
+    .card { background: #fff; border-radius: 16px; box-shadow: 8px 8px 20px rgba(163,177,198,0.45), -6px -6px 16px rgba(255,255,255,0.9); overflow: hidden; }
+    .cover { height: 160px; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.7); font-size: 14px; }
+    .cover img { width: 100%; height: 100%; object-fit: cover; }
+    .body { padding: 20px; }
+    h1 { margin: 0 0 8px; font-size: 22px; }
+    .caption { color: var(--muted); margin: 0 0 16px; line-height: 1.5; }
+    .meta { font-size: 12px; color: var(--muted); word-break: break-all; margin-bottom: 8px; }
+    .meta a { color: var(--accent); }
+    .links a { display: block; padding: 10px 12px; margin-bottom: 8px; border-radius: 10px; background: rgba(90,95,122,0.06); color: var(--text); text-decoration: none; font-size: 14px; }
+    .links a:hover { background: rgba(90,95,122,0.1); }
+    .err { padding: 24px; text-align: center; color: var(--muted); }
+    .blocks { margin-top: 12px; font-size: 14px; line-height: 1.5; }
+    .blocks h2 { font-size: 16px; margin: 16px 0 8px; }
+    .footer-block { margin-top: 16px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,0.08); font-size: 13px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div id="root" class="err">Loading…</div>
+  </div>
+  <script>
+    window.__ALPHA_PAGE_BASE_URL__ = window.__ALPHA_PAGE_BASE_URL__ || 'https://alphasearch.gridnetai.com';
+    var firebaseConfig = {
+      apiKey: "AIzaSyAfz3gJfNzt1nk8pZTeKsVUvY301e9TT-M",
+      authDomain: "alpha-search-index.firebaseapp.com",
+      projectId: "alpha-search-index",
+      storageBucket: "alpha-search-index.firebasestorage.app",
+      messagingSenderId: "169073379199",
+      appId: "1:169073379199:web:555586433f3228ccc0fc4a"
+    };
+    firebase.initializeApp(firebaseConfig);
+    var db = firebase.firestore();
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      try { db.useEmulator('127.0.0.1', 8085); } catch (e) {}
+    }
+
+    function getSlugFromPath() {
+      var path = window.location.pathname.replace(/^\/+|\/+$/g, '');
+      var parts = path.split('/');
+      if (parts[0] === 'p' && parts[1]) return decodeURIComponent(parts[1]);
+      return '';
+    }
+
+    function renderPage(d) {
+      var base = window.__ALPHA_PAGE_BASE_URL__.replace(/\/$/, '');
+      var cover = d.coverDataUrl
+        ? '<img src="' + d.coverDataUrl.replace(/"/g, '&quot;') + '" alt="" />'
+        : 'Cover';
+      var signals = Array.isArray(d.signals) ? d.signals : [];
+      var linksHtml = signals.map(function(s) {
+        var u = (s.url || '#').replace(/"/g, '&quot;');
+        return '<a href="' + u + '" target="_blank" rel="noopener">' + (s.label || s.url || 'Link') + '</a>';
+      }).join('');
+      var blocksHtml = '';
+      if (d.contentBlocks && d.contentBlocks.length) {
+        var sorted = d.contentBlocks.slice().sort(function(a, b) { return (a.order || 0) - (b.order || 0); });
+        blocksHtml = '<div class="blocks">' + sorted.map(function(b) {
+          var t = (b.content || '').replace(/</g, '&lt;').replace(/\n/g, '<br>');
+          if (b.type === 'chapter') return '<h2>' + (b.title || 'Chapter').replace(/</g, '&lt;') + '</h2><div>' + t + '</div>';
+          if (b.type === 'footer') return '<div class="footer-block">' + t + '</div>';
+          return '<div>' + t + '</div>';
+        }).join('') + '</div>';
+      } else if (d.richText) {
+        blocksHtml = '<div class="blocks">' + String(d.richText).replace(/</g, '&lt;').replace(/\n/g, '<br>') + '</div>';
+      }
+      return (
+        '<div class="card">' +
+        '<div class="cover">' + cover + '</div>' +
+        '<div class="body">' +
+        '<h1>' + (d.name || d.displayName || 'Alpha Page').replace(/</g, '&lt;') + '</h1>' +
+        '<p class="caption">' + (d.caption || d.bio || '').replace(/</g, '&lt;') + '</p>' +
+        '<div class="meta">Grid: <strong>' + (d.grid_address || '').replace(/</g, '&lt;') + '</strong></div>' +
+        '<div class="meta">Public: <a href="' + (d.public_url || base + '/p/' + (d.slug || '')).replace(/"/g, '&quot;') + '">' + (d.public_url || base + '/p/' + (d.slug || '')).replace(/</g, '&lt;') + '</a></div>' +
+        (linksHtml ? '<div class="links">' + linksHtml + '</div>' : '') +
+        blocksHtml +
+        '</div></div>'
+      );
+    }
+
+    (function () {
+      var slug = getSlugFromPath() || new URLSearchParams(window.location.search).get('slug');
+      var root = document.getElementById('root');
+      if (!slug) {
+        root.className = 'err';
+        root.innerHTML = '<p>No page slug. Open <code>/p/your-slug</code> on this host (e.g. <code>alpha-search-index.web.app/p/demo</code>).</p>';
+        return;
+      }
+      db.collection('alpha_pages_index')
+        .where('slug', '==', slug)
+        .limit(5)
+        .get()
+        .then(function (snap) {
+          var published = null;
+          snap.forEach(function (doc) {
+            var x = doc.data();
+            if (x.status === 'published' && !published) published = x;
+          });
+          if (!published && snap.size) {
+            var first = snap.docs[0].data();
+            if (first.status === 'published') published = first;
+          }
+          if (!published) {
+            root.className = 'err';
+            root.innerHTML = '<p>No published Alpha Page found for <strong>' + slug.replace(/</g, '&lt;') + '</strong>.</p>';
+            return;
+          }
+          root.className = '';
+          root.innerHTML = renderPage(published);
+          document.title = (published.name || published.displayName || 'Alpha Page') + ' · Alpha Page';
+        })
+        .catch(function (e) {
+          root.className = 'err';
+          root.innerHTML = '<p>Could not load page.</p><p style="font-size:12px">' + (e.message || e) + '</p>';
+        });
+    })();
+  </script>
+</body>
+</html>

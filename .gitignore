@@ -13,6 +13,7 @@ firestore-debug.log
 .env
 .env.local
 functions/.env
+functions/.runtimeconfig.json
 
 # Admin SDK credentials (keep secure)
 *-firebase-adminsdk-*.json

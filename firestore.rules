@@ -65,6 +65,20 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Alpha pages index - one doc per published page (discovery + machine files). Owner writes on publish.
+    match /alpha_pages_index/{pageId} {
+      allow read: if true;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow delete: if false;
+    }
+
+    // Search log - every search + every file found. Written only by Cloud Functions.
+    match /search_log/{logId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // System counters - read by anyone, write by anyone (for global counter)
     match /system/{docId} {
       allow read: if true;

@@ -7,11 +7,15 @@
 
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
+const https = require('https');
+const http = require('http');
+const { URL: NodeURL } = require('url');
 const { normalizeDomain, extractDomain, crawlDomain, getGrade } = require('./crawler');
 const { googleSearch } = require('./scraper');
 const { verifyToken, attachUser } = require('./auth');
 const { createUserProfile, getUserProfile, incrementSearchCount } = require('./db/users');
 const { saveSearchToHistory, getUserSearchHistory, saveAiRecord, getUserSavedRecords, removeSavedRecord } = require('./db/searchHistory');
+const { createCheckoutSession, createNfcCheckoutSession, createBillingPortalSession, handleWebhook } = require('./stripe');
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -34,7 +38,7 @@ exports.apiHandler = functions
   // Enable CORS
   res.set('Access-Control-Allow-Origin', '*');
   res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type');
+  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Session-Id');
   
   // Handle preflight
   if (req.method === 'OPTIONS') {
@@ -60,10 +64,102 @@ exports.apiHandler = functions
     await verifyToken(req, res, () => handleSaveRecord(req, res));
   } else if ((path === '/user/saved' || path === '/api/user/saved') && req.method === 'DELETE') {
     await verifyToken(req, res, () => handleDeleteSaved(req, res));
+  } else if ((path === '/createCheckoutSession' || path === '/api/createCheckoutSession') && req.method === 'POST') {
+    await verifyToken(req, res, () => handleCreateCheckoutSession(req, res));
+  } else if ((path === '/createNfcCheckoutSession' || path === '/api/createNfcCheckoutSession') && req.method === 'POST') {
+    await verifyToken(req, res, () => handleCreateNfcCheckoutSession(req, res));
+  } else if ((path === '/createBillingPortalSession' || path === '/api/createBillingPortalSession') && req.method === 'POST') {
+    await verifyToken(req, res, () => handleCreateBillingPortalSession(req, res));
+  } else if ((path === '/link-preview' || path === '/api/link-preview') && req.method === 'POST') {
+    handleLinkPreview(req, res);
   } else {
     res.status(404).json({ error: 'Not found' });
   }
 });
+
+/**
+ * POST /api/link-preview — fetch basic OG metadata (title, description, image) for a URL.
+ */
+function fetchUrlBodyForPreview(href, maxBytes) {
+  return new Promise((resolve, reject) => {
+    let u;
+    try {
+      u = new NodeURL(href);
+    } catch (e) {
+      reject(e);
+      return;
+    }
+    const lib = u.protocol === 'https:' ? https : http;
+    const opts = {
+      hostname: u.hostname,
+      port: u.port || (u.protocol === 'https:' ? 443 : 80),
+      path: (u.pathname || '/') + (u.search || ''),
+      method: 'GET',
+      headers: { 'User-Agent': 'AlphaSearchLinkPreview/1.0' },
+      timeout: 12000
+    };
+    const req = lib.request(opts, (r) => {
+      let buf = '';
+      r.setEncoding('utf8');
+      r.on('data', (chunk) => {
+        if (Buffer.byteLength(buf, 'utf8') < maxBytes) buf += chunk;
+        if (Buffer.byteLength(buf, 'utf8') >= maxBytes) {
+          r.destroy();
+          resolve(buf.slice(0, maxBytes));
+        }
+      });
+      r.on('end', () => resolve(buf));
+    });
+    req.on('error', reject);
+    req.on('timeout', () => {
+      req.destroy();
+      reject(new Error('timeout'));
+    });
+    req.end();
+  });
+}
+
+async function handleLinkPreview(req, res) {
+  try {
+    const { url } = req.body || {};
+    if (!url || typeof url !== 'string') {
+      return res.status(400).json({ error: 'Missing url' });
+    }
+    let target;
+    try {
+      target = new NodeURL(url.trim().startsWith('http') ? url.trim() : 'https://' + url.trim());
+    } catch (e) {
+      return res.status(400).json({ error: 'Invalid URL' });
+    }
+    if (target.protocol !== 'http:' && target.protocol !== 'https:') {
+      return res.status(400).json({ error: 'Invalid protocol' });
+    }
+    const html = await fetchUrlBodyForPreview(target.href, 98304);
+    const ogTitle =
+      html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i) ||
+      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i);
+    const ogDesc =
+      html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i) ||
+      html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i);
+    const ogImage =
+      html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i) ||
+      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+    const titleTag = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+    const site = target.hostname.replace(/^www\./, '');
+    const favicon = 'https://www.google.com/s2/favicons?domain=' + encodeURIComponent(site) + '&sz=64';
+    const title = (ogTitle && ogTitle[1] ? ogTitle[1].trim() : null) || (titleTag && titleTag[1] ? titleTag[1].trim() : site);
+    res.json({
+      title: title || site,
+      description: ogDesc && ogDesc[1] ? ogDesc[1].trim() : '',
+      thumbnail: ogImage && ogImage[1] ? ogImage[1].trim() : null,
+      favicon,
+      url: target.href
+    });
+  } catch (err) {
+    console.error('link-preview', err);
+    res.status(500).json({ error: err.message || 'Failed to fetch preview' });
+  }
+}
 
 /**
  * Handle POST /api/check
@@ -439,13 +535,75 @@ async function handleNameSearch(req, res) {
       results.reduce((sum, r) => sum + r.score, 0) / results.length
     );
     const { grade, gradeClass } = getGrade(avgScore);
+
+    // Step 5b: Alpha pages matching the search query (for inline results)
+    let alphaPages = [];
+    try {
+      const alphaSnap = await db.collection('alpha_pages_index').limit(50).get();
+      const q = (query || '').toLowerCase().trim();
+      if (q.length >= 2) {
+        alphaPages = alphaSnap.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .filter(p => {
+            const name = (p.name || '').toLowerCase();
+            const slug = (p.slug || '').toLowerCase();
+            const caption = (p.caption || p.bio || '').toLowerCase();
+            const business = (p.businessName || '').toLowerCase();
+            return name.includes(q) || slug.includes(q) || caption.includes(q) || business.includes(q);
+          })
+          .slice(0, 10);
+      }
+    } catch (alphaErr) {
+      console.warn('Alpha pages lookup failed (non-fatal):', alphaErr.message);
+    }
     
-    // TODO: Step 6: Store detailed search metadata (skipping for now)
-    // Will implement after scores are displaying correctly
+    console.log(`Name search complete: ${results.length} pages, avg score ${avgScore}, alpha pages: ${alphaPages.length}`);
     
-    console.log(`Name search complete: ${results.length} pages, avg score ${avgScore}`);
-    
-    // Step 7: Return results
+    // Step 6: Write to search_log (second index: every search + every file found)
+    const sessionId = req.body?.sessionId || req.headers['x-session-id'] || null;
+    const searchLogPayload = {
+      query,
+      userId: req.user?.uid || null,
+      sessionId: sessionId || null,
+      searchedAt: admin.firestore.FieldValue.serverTimestamp(),
+      avgScore,
+      grade,
+      gradeClass,
+      totalResults: results.length,
+      results: results.map(r => ({
+        domain: r.domain,
+        pageUrl: r.pageUrl,
+        pageTitle: r.pageTitle,
+        score: r.score,
+        grade: r.grade,
+        gradeClass: r.gradeClass,
+        machineProfile: r.machineProfile || null,
+        fromCache: r.fromCache || false
+      }))
+    };
+    try {
+      await db.collection('search_log').add(searchLogPayload);
+    } catch (logErr) {
+      console.warn('Search log write failed (non-fatal):', logErr.message);
+    }
+
+    // Step 7: Save to user's search history if authenticated
+    if (req.user) {
+      try {
+        await saveSearchToHistory(req.user.uid, {
+          query,
+          entityType: 'person',
+          alphaScore: avgScore,
+          grade,
+          cacheHit: false,
+          serpApiUsed: true
+        });
+      } catch (historyErr) {
+        console.warn('User search history write failed (non-fatal):', historyErr.message);
+      }
+    }
+
+    // Step 8: Return results + matching alpha pages
     res.json({
       query,
       totalPages: results.length,
@@ -461,6 +619,15 @@ async function handleNameSearch(req, res) {
         gradeClass: r.gradeClass,
         machineProfile: r.machineProfile,
         fromCache: r.fromCache
+      })),
+      alphaPages: alphaPages.map(p => ({
+        id: p.id,
+        name: p.name || p.displayName || 'Alpha Page',
+        slug: p.slug,
+        publicUrl: p.public_url,
+        caption: p.caption || p.bio || '',
+        avatarDataUrl: p.avatarDataUrl || null,
+        coverDataUrl: p.coverDataUrl || null
       }))
     });
     
@@ -606,3 +773,103 @@ async function handleDeleteSaved(req, res) {
     res.status(500).json({ error: error.message });
   }
 }
+
+/**
+ * POST /api/createCheckoutSession
+ * Body: { plan: 'starter' | 'premium' | 'pro', successUrl?, cancelUrl? }
+ * Returns: { url } — redirect user to this URL for Stripe Checkout
+ */
+async function handleCreateCheckoutSession(req, res) {
+  try {
+    const uid = req.user?.uid;
+    const email = req.user?.email;
+    if (!uid) return res.status(401).json({ error: 'Unauthorized' });
+    const { plan, successUrl, cancelUrl, addNfcCard, nfcQty } = req.body || {};
+    if (!plan || !['starter', 'premium', 'pro'].includes(plan)) {
+      return res.status(400).json({ error: 'Invalid plan. Use "starter", "premium", or "pro".' });
+    }
+    const origin = process.env.FIREBASE_HOSTING_URL || 'https://alpha-search-index.web.app';
+    const result = await createCheckoutSession(
+      uid,
+      email,
+      plan,
+      successUrl || `${origin}/?checkout=success`,
+      cancelUrl || `${origin}/?checkout=cancelled`,
+      !!addNfcCard,
+      nfcQty
+    );
+    res.json({ url: result.url });
+  } catch (error) {
+    console.error('CreateCheckoutSession error:', error);
+    res.status(500).json({ error: error.message || 'Failed to create checkout session' });
+  }
+}
+
+/**
+ * POST /api/createNfcCheckoutSession
+ * Body: { returnUrl? }
+ * Returns: { url } — redirect user to Stripe Checkout for Stream Disc (one-time payment)
+ */
+async function handleCreateNfcCheckoutSession(req, res) {
+  try {
+    const uid = req.user?.uid;
+    const email = req.user?.email;
+    if (!uid) return res.status(401).json({ error: 'Unauthorized' });
+    const { returnUrl, quantity } = req.body || {};
+    const origin = process.env.FIREBASE_HOSTING_URL || 'https://alpha-search-index.web.app';
+    const result = await createNfcCheckoutSession(uid, email, returnUrl || `${origin}/`, quantity);
+    res.json({ url: result.url });
+  } catch (error) {
+    console.error('CreateNfcCheckoutSession error:', error);
+    res.status(500).json({ error: error.message || 'Failed to create NFC checkout session' });
+  }
+}
+
+/**
+ * POST /api/createBillingPortalSession
+ * Body: { returnUrl? }
+ * Returns: { url } — redirect user to Stripe Customer Portal
+ */
+async function handleCreateBillingPortalSession(req, res) {
+  try {
+    const uid = req.user?.uid;
+    if (!uid) return res.status(401).json({ error: 'Unauthorized' });
+    const { returnUrl } = req.body || {};
+    const origin = process.env.FIREBASE_HOSTING_URL || 'https://alpha-search-index.web.app';
+    const result = await createBillingPortalSession(uid, returnUrl || origin);
+    res.json({ url: result.url });
+  } catch (error) {
+    console.error('CreateBillingPortalSession error:', error);
+    res.status(500).json({ error: error.message || 'Failed to create portal session' });
+  }
+}
+
+/**
+ * Stripe webhook — must be a separate function to read raw body for signature verification.
+ * In Stripe Dashboard: add endpoint https://us-central1-alpha-search-index.cloudfunctions.net/stripeWebhook
+ * and set stripe.webhook_secret in Firebase config from the signing secret.
+ */
+function readRawBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    req.on('data', chunk => chunks.push(chunk));
+    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    req.on('error', reject);
+  });
+}
+
+exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
+  if (req.method !== 'POST') {
+    res.status(405).send('Method Not Allowed');
+    return;
+  }
+  try {
+    const rawBody = req.rawBody != null ? req.rawBody : await readRawBody(req);
+    const signature = req.headers['stripe-signature'] || '';
+    await handleWebhook(rawBody, signature);
+    res.status(200).json({ received: true });
+  } catch (err) {
+    console.error('Stripe webhook error:', err);
+    res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+});

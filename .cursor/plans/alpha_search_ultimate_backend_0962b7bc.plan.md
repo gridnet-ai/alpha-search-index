@@ -13,7 +13,7 @@ todos:
     status: completed
   - id: cloud-sql-provision
     content: Provision Cloud SQL PostgreSQL 15 instance (alpha-search-index-db, db-n1-standard-2, us-central1, 100GB SSD, private IP only)
-    status: pending
+    status: completed
   - id: cloud-sql-connection
     content: Create functions/db/connection.js using @google-cloud/sql-connector with connection pooling
     status: completed
@@ -31,7 +31,7 @@ todos:
     status: completed
   - id: cloud-storage-buckets
     content: Create GCS buckets alpha-search-raw-crawls (90d), alpha-search-snapshots (30d), alpha-search-analytics
-    status: pending
+    status: completed
   - id: env-config
     content: Set all env vars in .env and deploy firebase functions:config:set for Cloud SQL + GCS
     status: completed
@@ -73,7 +73,7 @@ todos:
     status: completed
   - id: deploy-indexer
     content: Deploy indexer Cloud Run service (alpha-search-indexer, us-central1, 1Gi RAM, no public auth)
-    status: pending
+    status: completed
   - id: cloud-scheduler
     content: Create Cloud Scheduler jobs — reindex-domains (hourly), reindex-people (:15), discover (6hr), snapshot (3am)
     status: completed
